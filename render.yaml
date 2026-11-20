@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: texmex-md
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: BOT_NAME
+        value: TEXMEX-MD
+      - key: OWNER_NAME
+        value: TEXMEX-MD
+      - key: PREFIX
+        value: "."
+      - key: MODE
+        value: public
+      - key: SESSION_ID
+        sync: false
+      - key: OWNER_NUMBER
+        sync: false
+      - key: DASHBOARD_KEY
+        sync: false

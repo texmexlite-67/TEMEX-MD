@@ -1,0 +1,74 @@
+{
+  "name": "TEXMEX-MD",
+  "description": "TEXMEX-MD — Universal Multi-Device WhatsApp Bot · Developed by TEXMEX with ❤️",
+  "repository": "https://github.com/texmexlite-67/TEMEX-MD",
+  "keywords": [
+    "whatsapp-bot",
+    "baileys",
+    "multi-device",
+    "texmex-md",
+    "nodejs"
+  ],
+  "stack": "heroku-24",
+  "buildpacks": [
+    {
+      "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git"
+    },
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "env": {
+    "BOT_NAME": {
+      "description": "Display name of your WhatsApp bot",
+      "value": "TEXMEX-MD",
+      "required": true
+    },
+    "OWNER_NAME": {
+      "description": "Bot owner display name",
+      "value": "TEXMEX-MD",
+      "required": true
+    },
+    "OWNER_NUMBER": {
+      "description": "Owner WhatsApp phone number with country code (no +, e.g. 254712345678)",
+      "value": "",
+      "required": false
+    },
+    "SESSION_ID": {
+      "description": "Portable TEXMEX-MD~ session string (leave blank to pair via the Web Dashboard first)",
+      "value": "",
+      "required": false
+    },
+    "PREFIX": {
+      "description": "Command trigger prefix",
+      "value": ".",
+      "required": true
+    },
+    "MODE": {
+      "description": "Bot command mode: public or private",
+      "value": "public",
+      "required": true
+    },
+    "ANTI_DELETE": {
+      "description": "Recover deleted messages: dm, chat, or off",
+      "value": "dm",
+      "required": false
+    },
+    "AUTO_STATUS_VIEW": {
+      "description": "Automatically view WhatsApp Status updates",
+      "value": "true",
+      "required": false
+    },
+    "DASHBOARD_KEY": {
+      "description": "Optional password to protect the Web Pairing Dashboard",
+      "value": "",
+      "required": false
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  }
+}

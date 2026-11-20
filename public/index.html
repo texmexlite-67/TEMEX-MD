@@ -1,0 +1,2199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#05080e" />
+<title>⟁ 𝗧𝗘𝗫𝗠𝗘𝗫-𝗠𝗗 // 3D BAZE NEXUS · Developed by TEXMEX with ❤️</title>
+<style>
+:root{
+  --accent:#3fe3c4;
+  --accent-dim:rgba(63,227,196,.16);
+  --bg1:#07131f; --bg2:#0d2b3a; --bg3:#19c7a8;
+  --ink:#eaf6f4; --muted:#8ea6a4;
+  --glass:rgba(10,18,26,.68);
+  --stroke:rgba(140,220,210,.16);
+  --danger:#ff6b6b;
+  --amber:#f59e0b;
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --scifi:"Orbitron","Rajdhani","Chakra Petch","Eurostile",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:#05080e;overflow:hidden;color:var(--ink);font-family:var(--font)}
+body{position:fixed;inset:0}
+canvas#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+canvas#gl:active{cursor:grabbing}
+#vignette{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 55%,transparent 35%,rgba(2,5,9,.55) 100%);
+  mix-blend-mode:multiply}
+#grain{position:absolute;inset:0;pointer-events:none;opacity:.035;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/></filter><rect width='120' height='120' filter='url(%23n)'/></svg>")}
+
+/* ---------- top bar ---------- */
+.topbar{position:absolute;top:0;left:0;right:0;height:64px;display:flex;align-items:center;gap:11px;
+  padding:0 16px;z-index:20;background:linear-gradient(180deg,rgba(4,8,12,.88),rgba(4,8,12,0));
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit}
+.brand-dp{width:34px;height:34px;border-radius:10px;object-fit:cover;border:1.5px solid var(--accent);
+  box-shadow:0 0 16px -4px var(--accent)}
+.brand .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 14px var(--accent),0 0 3px var(--accent);animation:breathe 3.6s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.5);opacity:1}}
+.logo{font-family:var(--scifi);font-weight:800;letter-spacing:.14em;font-size:13px;white-space:nowrap}
+.logo em{color:var(--accent);font-style:normal;margin-left:4px;opacity:.95}
+.group{background:none;border:0;color:var(--ink);text-align:left;cursor:pointer;padding:4px 8px;border-radius:10px;
+  border:1px solid transparent;transition:.2s}
+.group:hover{border-color:var(--stroke);background:rgba(255,255,255,.04)}
+.group span{display:block;font-size:13px;font-weight:600;letter-spacing:.01em;white-space:nowrap}
+.group small{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--muted);margin-top:1px}
+.clock{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;color:var(--muted);
+  padding-left:12px;border-left:1px solid var(--stroke);line-height:1.35}
+.clock b{display:block;color:var(--ink);font-size:13.5px;letter-spacing:.06em}
+.pill{display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;
+  border:1px solid var(--stroke);background:rgba(255,255,255,.04);font-size:11.5px;white-space:nowrap;cursor:pointer;transition:.18s}
+.pill:hover{border-color:var(--accent);background:var(--accent-dim)}
+.pill .pulse{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.pill.warn .pulse{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.pill b{font-weight:600}
+.pill small{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.spacer{flex:1}
+.btn{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink);background:rgba(255,255,255,.05);border:1px solid var(--stroke);
+  padding:8px 11px;border-radius:10px;cursor:pointer;transition:.18s;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.btn:hover{background:var(--accent-dim);border-color:var(--accent);color:#fff;box-shadow:0 0 24px -8px var(--accent)}
+.btn.on{background:var(--accent-dim);border-color:var(--accent);color:#fff}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#041410;font-weight:700}
+.btn.primary:hover{filter:brightness(1.08);color:#02100c}
+.btn.danger{background:rgba(255,107,107,.14);border-color:rgba(255,107,107,.45);color:#ff9e9e}
+.btn.mobile-only{display:none}
+
+/* ---------- signature badge ---------- */
+.sig-badge{position:absolute;right:18px;bottom:20px;z-index:14;font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--muted);background:rgba(6,12,18,.68);
+  border:1px solid var(--stroke);padding:6px 11px;border-radius:999px;backdrop-filter:blur(10px);
+  pointer-events:auto;text-decoration:none;transition:.2s}
+.sig-badge b{color:var(--accent)}
+.sig-badge:hover{border-color:var(--accent);color:#fff}
+
+/* ---------- panels ---------- */
+.panel{position:absolute;z-index:15;width:262px;background:var(--glass);border:1px solid var(--stroke);
+  border-radius:16px;backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2);
+  box-shadow:0 24px 60px -30px #000,inset 0 1px 0 rgba(255,255,255,.06);
+  transition:transform .32s cubic-bezier(.4,0,.2,1),opacity .32s;overflow:hidden}
+.panel.hidden{opacity:0;pointer-events:none}
+.panel.left{left:18px;top:76px;transform-origin:left top;max-height:calc(100% - 190px);display:flex;flex-direction:column}
+.panel.left.hidden{transform:translateX(-120%)}
+.panel.right{right:18px;top:76px;width:320px;max-height:calc(100% - 190px);display:flex;flex-direction:column}
+.panel.right.hidden{transform:translateX(120%)}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:13px 15px 10px}
+.panel-head h3{margin:0;font-family:var(--scifi);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.mini{width:22px;height:22px;border-radius:7px;border:1px solid var(--stroke);background:rgba(255,255,255,.05);
+  color:var(--ink);cursor:pointer;font-size:13px;line-height:1;transition:.18s}
+.mini:hover{border-color:var(--accent);color:var(--accent)}
+
+/* crew list */
+#crewList{list-style:none;margin:0;padding:0 8px 8px;overflow-y:auto}
+#crewList li{display:flex;align-items:center;gap:10px;padding:8px 8px;border-radius:11px;cursor:pointer;
+  transition:.16s;border:1px solid transparent;position:relative}
+#crewList li:hover{background:rgba(255,255,255,.055)}
+#crewList li.sel{background:var(--accent-dim);border-color:var(--accent)}
+.orbdot{width:26px;height:26px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-size:13px;
+  border:1px solid rgba(255,255,255,.14);position:relative}
+.orbdot::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1px solid currentColor;
+  opacity:.28;animation:ring 3s ease-out infinite}
+@keyframes ring{0%{transform:scale(.86);opacity:.4}100%{transform:scale(1.35);opacity:0}}
+.who{flex:1;min-width:0}
+.who b{display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who small{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-top:1px}
+.energy{width:34px;height:3px;border-radius:2px;background:rgba(255,255,255,.11);overflow:hidden}
+.energy i{display:block;height:100%;border-radius:2px;background:var(--accent);transition:width .5s}
+.hint{padding:4px 15px 12px;font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.04em}
+
+/* oracle */
+.tabs{display:flex;gap:4px;padding:0 12px 9px}
+.tabs button{flex:1;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  background:none;border:1px solid transparent;color:var(--muted);padding:6px 2px;border-radius:8px;cursor:pointer;transition:.18s}
+.tabs button:hover{color:var(--ink)}
+.tabs button.on{color:var(--ink);background:rgba(255,255,255,.07);border-color:var(--stroke)}
+#oracleBody{padding:2px 15px 15px;overflow-y:auto;font-size:12.5px;line-height:1.62;color:#d3e6e3}
+#oracleBody p{margin:0 0 9px}
+#oracleBody .k{color:var(--accent);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:4px}
+.step{display:flex;gap:9px;padding:8px 9px;border-radius:10px;border:1px solid var(--stroke);margin-bottom:7px;
+  background:rgba(255,255,255,.028);cursor:pointer;transition:.16s}
+.step:hover{border-color:var(--accent);background:var(--accent-dim);transform:translateX(2px)}
+.step .t{font-family:var(--mono);font-size:9.5px;color:var(--accent);padding-top:2px;letter-spacing:.06em}
+.step b{display:block;font-size:12px;font-weight:600;margin-bottom:1px}
+.step small{display:block;font-size:11px;color:var(--muted);line-height:1.45}
+.gen{width:100%;margin-top:5px;padding:9px;border-radius:10px;border:1px solid var(--accent);
+  background:var(--accent-dim);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;cursor:pointer;transition:.18s}
+.gen:hover{background:var(--accent);color:#04120f}
+.spark{display:flex;align-items:flex-end;gap:3px;height:26px;margin:8px 0 2px}
+.spark i{flex:1;border-radius:2px 2px 0 0;background:var(--accent);opacity:.55;min-height:2px}
+.spark i.now{opacity:1;box-shadow:0 0 12px -2px var(--accent)}
+.mono{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+/* dock */
+.dock{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:16;display:flex;gap:6px;
+  padding:8px;border-radius:18px;background:var(--glass);border:1px solid var(--stroke);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  box-shadow:0 24px 60px -34px #000,inset 0 1px 0 rgba(255,255,255,.06);max-width:calc(100% - 24px);overflow-x:auto;
+  scrollbar-width:none}
+.dock::-webkit-scrollbar{display:none}
+.mood{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 12px;border-radius:12px;
+  background:none;border:1px solid transparent;color:var(--muted);cursor:pointer;transition:.2s;min-width:62px}
+.mood span{font-size:17px;line-height:1;filter:grayscale(.55);transition:.2s}
+.mood b{font-family:var(--mono);font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap}
+.mood:hover{background:rgba(255,255,255,.05);color:var(--ink)}
+.mood:hover span{filter:none;transform:translateY(-1px)}
+.mood.on{background:var(--accent-dim);border-color:var(--accent);color:#fff}
+.mood.on span{filter:none;transform:scale(1.12)}
+
+/* dev drawer */
+.drawer{position:absolute;right:0;top:0;bottom:0;width:320px;z-index:40;background:rgba(6,11,16,.95);
+  border-left:1px solid var(--stroke);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  transform:translateX(103%);transition:transform .34s cubic-bezier(.4,0,.2,1);overflow-y:auto;padding:16px 18px 34px}
+.drawer.open{transform:none}
+.drawer h4{margin:0 0 3px;font-family:var(--scifi);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.drawer .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;
+  border-bottom:1px dashed rgba(255,255,255,.07);font-size:12px}
+.drawer .row label{color:#cfe0dd}
+.drawer .val{font-family:var(--mono);font-size:10px;color:var(--accent)}
+input[type=range]{-webkit-appearance:none;appearance:none;height:3px;border-radius:3px;background:rgba(255,255,255,.14);
+  width:118px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;
+  background:var(--accent);cursor:pointer;box-shadow:0 0 10px var(--accent)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radius:50%;background:var(--accent);cursor:pointer}
+.sw{width:36px;height:19px;border-radius:999px;background:rgba(255,255,255,.13);border:0;position:relative;cursor:pointer;transition:.2s;flex:0 0 auto}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#93a8a5;transition:.2s}
+.sw.on{background:var(--accent-dim)}
+.sw.on::after{left:19px;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.presets{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0 14px}
+.presets button{padding:8px;border-radius:9px;border:1px solid var(--stroke);background:rgba(255,255,255,.04);
+  color:#cfe0dd;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:.16s}
+.presets button:hover{border-color:var(--accent);color:#fff}
+.presets button.on{background:var(--accent-dim);border-color:var(--accent);color:#fff}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px;font-family:var(--mono);font-size:9.5px}
+.statgrid div{background:rgba(255,255,255,.04);border:1px solid var(--stroke);border-radius:8px;padding:7px 8px}
+.statgrid b{display:block;color:var(--accent);font-size:11.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- TEXMEX-MD BOT HUB OVERLAY ---------- */
+.bothub{position:absolute;inset:72px 18px 92px 18px;max-width:980px;margin:0 auto;z-index:35;
+  background:rgba(7,13,20,.92);border:1px solid var(--stroke);border-radius:20px;
+  backdrop-filter:blur(22px) saturate(1.3);-webkit-backdrop-filter:blur(22px) saturate(1.3);
+  box-shadow:0 36px 90px -30px #000,0 0 40px -18px var(--accent);
+  display:flex;flex-direction:column;overflow:hidden;
+  opacity:0;pointer-events:none;transform:translateY(12px) scale(.985);transition:.26s cubic-bezier(.4,0,.2,1)}
+.bothub.open{opacity:1;pointer-events:auto;transform:none}
+.bh-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;
+  padding:14px 18px;border-bottom:1px solid var(--stroke);background:rgba(255,255,255,.02)}
+.bh-title{display:flex;align-items:center;gap:11px}
+.bh-title img{width:40px;height:40px;border-radius:11px;border:1.5px solid var(--accent);object-fit:cover}
+.bh-title h2{margin:0;font-family:var(--scifi);font-size:14px;letter-spacing:.14em;text-transform:uppercase}
+.bh-title small{display:block;font-family:var(--mono);font-size:9.5px;color:var(--muted);margin-top:2px}
+.bh-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:10px 18px;border-bottom:1px solid var(--stroke);background:rgba(0,0,0,.2)}
+.bh-tab{font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+  padding:7px 12px;border-radius:9px;border:1px solid transparent;background:rgba(255,255,255,.035);
+  color:var(--muted);cursor:pointer;transition:.16s}
+.bh-tab:hover{color:#fff;border-color:var(--stroke)}
+.bh-tab.active{background:var(--accent-dim);color:#fff;border-color:var(--accent)}
+.bh-body{flex:1;overflow-y:auto;padding:16px 18px 22px}
+.bh-pane{display:none}
+.bh-pane.active{display:block}
+.bh-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
+.bh-card{background:rgba(255,255,255,.03);border:1px solid var(--stroke);border-radius:14px;padding:15px}
+.bh-card h4{margin:0 0 6px;font-family:var(--scifi);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.bh-card p{margin:0 0 11px;font-size:12px;color:var(--muted);line-height:1.5}
+.in{width:100%;padding:9px 11px;border-radius:10px;background:rgba(0,0,0,.38);border:1px solid var(--stroke);
+  color:#fff;font-size:12.5px;font-family:var(--font);outline:none;transition:.15s}
+.in:focus{border-color:var(--accent)}
+textarea.in{font-family:var(--mono);font-size:11.5px;min-height:78px;resize:vertical}
+.pair-digits{font-family:var(--mono);font-size:23px;font-weight:800;letter-spacing:3px;color:var(--accent);
+  text-align:center;padding:12px;margin-top:10px;border-radius:11px;background:rgba(0,0,0,.45);border:1px dashed var(--accent)}
+.qr-wrap{display:grid;place-items:center;min-height:205px;border-radius:12px;background:rgba(0,0,0,.35);
+  border:1px solid var(--stroke);padding:12px;text-align:center}
+.qr-wrap img{width:185px;height:185px;border-radius:10px;background:#fff;padding:7px}
+.cmd-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:9px;margin-top:12px}
+.cmd-card{background:rgba(255,255,255,.03);border:1px solid var(--stroke);border-radius:11px;padding:10px 12px;cursor:pointer;transition:.15s}
+.cmd-card:hover{border-color:var(--accent);background:var(--accent-dim)}
+.cmd-card .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.cmd-card b{font-family:var(--mono);font-size:12.5px;color:var(--accent)}
+.cmd-card em{font-style:normal;font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--muted);
+  padding:2px 6px;border-radius:99px;border:1px solid var(--stroke)}
+.cmd-card small{display:block;font-size:11.5px;color:#cfe0dd;line-height:1.4}
+.log-box{background:rgba(2,6,10,.82);border:1px solid var(--stroke);border-radius:11px;padding:11px;
+  height:250px;overflow-y:auto;font-family:var(--mono);font-size:11px;line-height:1.55}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;
+  border-radius:10px;background:rgba(255,255,255,.025);border:1px solid var(--stroke);margin-bottom:7px;font-size:12px}
+.set-row small{display:block;color:var(--muted);font-size:10.5px}
+
+/* modal */
+.modal{position:absolute;inset:0;z-index:50;display:grid;place-items:center;padding:20px;
+  background:rgba(3,6,10,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  opacity:0;pointer-events:none;transition:opacity .24s}
+.modal.open{opacity:1;pointer-events:auto}
+.card{position:relative;width:min(420px,100%);background:linear-gradient(160deg,rgba(16,26,34,.97),rgba(9,15,21,.97));
+  border:1px solid var(--stroke);border-radius:20px;padding:22px;box-shadow:0 40px 100px -40px #000;
+  transform:translateY(10px) scale(.98);transition:.24s}
+.modal.open .card{transform:none}
+.card .top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.card .big{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:22px;
+  border:1px solid var(--stroke);background:var(--accent-dim)}
+.card h2{margin:0;font-size:16px}
+.card .sub{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.card p{font-size:13px;line-height:1.6;color:#d3e6e3;margin:0 0 14px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions .btn{flex:1;justify-content:center;padding:10px}
+.x{position:absolute;top:14px;right:16px}
+
+/* toast + hud */
+.toast{position:absolute;left:50%;top:76px;transform:translate(-50%,-14px);z-index:60;
+  padding:9px 16px;border-radius:11px;background:rgba(8,14,20,.94);border:1px solid var(--accent);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#fff;
+  opacity:0;pointer-events:none;transition:.28s;box-shadow:0 0 40px -12px var(--accent)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.hud{position:absolute;left:18px;bottom:96px;z-index:18;font-family:var(--mono);font-size:10px;
+  line-height:1.6;color:var(--accent);background:rgba(4,9,13,.7);border:1px solid var(--stroke);
+  border-radius:10px;padding:8px 11px;display:none;white-space:pre;letter-spacing:.02em}
+.hud.show{display:block}
+.boot{position:absolute;inset:0;z-index:80;display:grid;place-items:center;background:#05080e;
+  transition:opacity .6s;font-family:var(--mono);letter-spacing:.2em;font-size:10.5px;text-transform:uppercase;color:var(--muted);text-align:center}
+.boot.gone{opacity:0;pointer-events:none}
+.boot .bar{width:170px;height:2px;background:rgba(255,255,255,.12);margin:14px auto 0;overflow:hidden;border-radius:2px}
+.boot .bar i{display:block;height:100%;width:40%;background:var(--accent);animation:load 1.1s ease-in-out infinite}
+@keyframes load{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
+
+@media (max-width:980px){
+  .panel.left{width:238px}
+  .panel.right{width:min(320px,calc(100% - 24px));right:12px;max-height:60%}
+  .clock,.pill small,.sig-badge{display:none}
+  .btn.mobile-only{display:inline-flex}
+  .btn.desktop-only{display:none}
+  .mood{min-width:56px;padding:7px 9px}
+  .bothub{inset:64px 10px 84px 10px}
+}
+@media (max-width:640px){
+  .topbar{height:56px;gap:6px;padding:0 10px}
+  .group{display:none}
+  .logo em{display:none}
+  .panel.left{width:min(260px,calc(100% - 24px));left:12px;top:64px}
+  .dock{bottom:10px;gap:2px;padding:6px}
+  .mood{padding:7px 8px;min-width:50px}
+  .hud{display:none!important}
+}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="vignette"></div>
+<div id="grain"></div>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="brand">
+    <img src="./bot-dp.jpg" alt="TEXMEX-MD" class="brand-dp" onerror="this.style.display='none'" />
+    <span class="dot"></span>
+    <span class="logo">⟁ TEXMEX-MD<em>// 3D</em></span>
+  </div>
+  <button class="group" id="groupBtn" title="Rename your 3D Baze">
+    <span id="groupName">TEXMEX // BAZE</span><small>tap to rename</small>
+  </button>
+  <div class="clock" id="clock"><b>--:--</b><span id="greet">karibu</span></div>
+
+  <div class="pill warn" id="waPill" title="Open TEXMEX-MD WhatsApp Control Hub">
+    <span class="pulse"></span>
+    <b id="waText">Syncing...</b>
+    <small id="waSub">whatsapp</small>
+  </div>
+
+  <div class="pill desktop-only" id="crewPill" title="Current Room Vibe">
+    <span class="pulse"></span>
+    <b id="crewMood">Chill</b>
+    <small>vibe</small>
+  </div>
+
+  <div class="spacer"></div>
+  <button class="btn mobile-only" data-act="crew">☰ Crew</button>
+  <button class="btn" data-act="bio" id="bioBtn" title="View Website, Port Links & WhatsApp Bio">🌐 Bio</button>
+  <button class="btn primary" data-act="bothub" id="botHubBtn">⚡ Bot Hub</button>
+  <button class="btn" data-act="oracle" id="oracleBtn">◈ Oracle</button>
+  <button class="btn" data-act="sound" id="soundBtn">♪ Sound</button>
+  <button class="btn" data-act="dev" id="devBtn">⌥ Dev</button>
+  <a class="btn desktop-only" href="https://github.com/texmexlite-67/TEMEX-MD" target="_blank" rel="noopener">🐙 Repo</a>
+</header>
+
+<!-- LEFT: CREW PANEL -->
+<aside class="panel left" id="crewPanel">
+  <div class="panel-head"><h3>The Crew // Orbs</h3><button class="mini" id="addMember" title="add member">+</button></div>
+  <ul id="crewList"></ul>
+  <div class="hint">click → spotlight orb · dbl-click → profile</div>
+</aside>
+
+<!-- RIGHT: ORACLE + LIVE AI PANEL -->
+<aside class="panel right hidden" id="oraclePanel">
+  <div class="panel-head"><h3>Texmex // Oracle</h3><span class="mono" id="oracleMode">hybrid ai</span></div>
+  <div class="tabs">
+    <button data-tab="vibe" class="on">Vibe</button>
+    <button data-tab="plan">Plan</button>
+    <button data-tab="talk">Talk</button>
+    <button data-tab="ai">🤖 AI</button>
+  </div>
+  <div id="oracleBody"></div>
+</aside>
+
+<!-- CENTER OVERLAY: TEXMEX-MD WHATSAPP BOT CONTROL HUB -->
+<section class="bothub" id="botHub">
+  <div class="bh-head">
+    <div class="bh-title">
+      <img src="./bot-dp.jpg" alt="TEXMEX-MD DP" onerror="this.style.display='none'" />
+      <div>
+        <h2>⟁ 𝗧𝗘𝗫𝗠𝗘𝗫-𝗠𝗗 // CYBER CONTROL MATRIX</h2>
+        <small id="bhMeta">Developed by TEXMEX with ❤️ · Loading live telemetry...</small>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <input type="password" id="dashKeyInput" class="in" placeholder="Dashboard Key" style="width:140px;padding:6px 9px;font-size:11px;display:none;" />
+      <button class="btn" id="applyBotDpBtn" title="Set Official Anime AI DP on WhatsApp">✨ Set Anime DP</button>
+      <button class="mini" id="closeBotHub" title="Close Bot Hub">×</button>
+    </div>
+  </div>
+
+  <div class="bh-tabs">
+    <button class="bh-tab active" data-bhtab="pair">🔗 Pair & Session</button>
+    <button class="bh-tab" data-bhtab="status">📡 Push to Status</button>
+    <button class="bh-tab" data-bhtab="cmds">📋 Commands (<span id="cmdTotalBadge">--</span>)</button>
+    <button class="bh-tab" data-bhtab="settings">⚙️ Controls & Logs</button>
+  </div>
+
+  <div class="bh-body">
+    <!-- PANE 1: PAIR & SESSION -->
+    <div class="bh-pane active" id="bh-pair">
+      <div class="bh-grid">
+        <div class="bh-card">
+          <h4>📱 8-Digit Phone Pairing</h4>
+          <p>Open WhatsApp → <b>Linked Devices → Link with phone number instead</b>.</p>
+          <input type="text" id="phoneInput" class="in" placeholder="Number w/ country code (e.g. 254715442684)" style="margin-bottom:8px;" />
+          <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);margin-bottom:10px;cursor:pointer;">
+            <input type="checkbox" id="customPairCheck" checked /> Use branded <b>TEXMEXMD</b> custom code
+          </label>
+          <button class="btn primary" id="getPairBtn" style="width:100%;justify-content:center;">⚡ Generate Pairing Code</button>
+          <div id="pairCodeBox" style="display:none;">
+            <div class="pair-digits" id="pairDigits">--------</div>
+          </div>
+        </div>
+
+        <div class="bh-card">
+          <h4>📷 Live QR & Connection State</h4>
+          <div class="qr-wrap" id="qrWrap">
+            <div style="color:var(--muted);font-size:12px;">Checking WhatsApp socket...</div>
+          </div>
+          <div style="display:flex;gap:7px;margin-top:10px;">
+            <button class="btn" id="restartBotBtn" style="flex:1;justify-content:center;">🔄 Restart</button>
+            <button class="btn danger" id="resetSessionBtn" style="flex:1;justify-content:center;">🗑️ Switch #</button>
+          </div>
+        </div>
+
+        <div class="bh-card" style="grid-column:1 / -1;">
+          <h4>🌐 My Force-Extended Bold Bio — Name TEXMEX + Website & Port Links</h4>
+          <p>Pushes your extended bold name (<code>⚡ 𝗧𝗘𝗫𝗠𝗘𝗫 ⟁ 𝗧𝗘𝗫𝗠𝗘𝗫-𝗠𝗗 ⚡</code>), multi-line bold description, and live Website + Port links directly over the raw WhatsApp status protocol.</p>
+          <div id="bhBioLinks" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:7px;margin-bottom:10px;font-family:var(--mono);font-size:11px;"></div>
+          <textarea id="bioInput" class="in" style="min-height:112px;margin-bottom:8px;" placeholder="Loading force-extended bold WhatsApp Bio..."></textarea>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn primary" id="syncBioBtn">📲 Force-Extend & Sync to WhatsApp Bio</button>
+            <button class="btn" id="resetBioBtn">↺ Restore Full Bold TEXMEX + Links Bio</button>
+          </div>
+        </div>
+
+        <div class="bh-card" style="grid-column:1 / -1;">
+          <h4>🔐 Portable TEXMEX-MD~ Session ID (Render / Koyeb / Heroku / VPS / Termux)</h4>
+          <p>Export your active session string for cloud <code>SESSION_ID</code> env vars, or paste an existing session string below.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <button class="btn" id="exportSessionBtn">📤 Export Active SESSION_ID</button>
+            <button class="btn" id="copySessionBtn">📋 Copy</button>
+            <button class="btn primary" id="importSessionBtn">📥 Import SESSION_ID</button>
+          </div>
+          <textarea id="sessionText" class="in" placeholder="TEXMEX-MD~H4sIAAAAAAAA..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANE 2: PUSH TO STATUS STUDIO -->
+    <div class="bh-pane" id="bh-status">
+      <div class="bh-grid">
+        <div class="bh-card">
+          <h4>📡 Custom Text → WhatsApp Status</h4>
+          <p>Publish a styled card directly to your connected WhatsApp Status (<code>status@broadcast</code>).</p>
+          <textarea id="statusCustomText" class="in" placeholder="Write anything to broadcast to your WhatsApp Status..."></textarea>
+          <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;">
+            <button class="btn primary" id="pushCustomStatusBtn" style="flex:1;justify-content:center;">📡 Push Text to Status</button>
+            <button class="btn" id="pushCheckinStatusBtn" style="flex:1;justify-content:center;">🌊 Push 3D Baze Check-In</button>
+          </div>
+        </div>
+
+        <div class="bh-card">
+          <h4>✨ 1-Tap AI / Scripture / Mind Status Generator</h4>
+          <p>Generate & immediately post Bible verses, Prayers, Motivation, Psychology, or Quotes to your Status.</p>
+          <input type="text" id="statusTopicInput" class="in" placeholder="Optional verse/topic (e.g. Psalm 23, family, confidence)" style="margin-bottom:10px;" />
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+            <button class="btn" data-pushcat="bible">📖 Push Bible</button>
+            <button class="btn" data-pushcat="prayer">🙏 Push Prayer</button>
+            <button class="btn" data-pushcat="motivate">🔥 Push Motivation</button>
+            <button class="btn" data-pushcat="psych">🧠 Push Psychology</button>
+            <button class="btn" data-pushcat="quote">💡 Push Quote</button>
+            <button class="btn" data-pushcat="spiritual">🕊️ Push Spiritual</button>
+          </div>
+          <div id="statusPushPreview" style="margin-top:10px;font-size:11.5px;color:#cfe0dd;white-space:pre-wrap;display:none;padding:9px;border-radius:9px;background:rgba(0,0,0,.35);border:1px solid var(--stroke);"></div>
+        </div>
+
+        <div class="bh-card" style="grid-column:1 / -1;">
+          <h4>🙏 Bible-Extracted Specialized Prayer Studio (OpenBible ESV · BibleGateway · AI)</h4>
+          <p>Extract matching Scripture from professional Biblical sites and weave a tailored prayer — preview, copy, or push straight to WhatsApp Status.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px;">
+            <select id="prayerTypeSelect" class="in" style="flex:1;min-width:190px;">
+              <option value="exam">📝 Exam Prayer (Wisdom & Recall)</option>
+              <option value="travel">✈️ Travel Prayer (Journey Mercies)</option>
+              <option value="prosperity">🌾 Prosperity Prayer (Provision & Doors)</option>
+              <option value="family">🏡 Family Prayer (Protection & Unity)</option>
+              <option value="friends">🤝 Friends Prayer (Loyal Circle)</option>
+              <option value="self">🕊️ Self Prayer (Inner Renewal)</option>
+              <option value="group">👥 Group Prayer (Harmony & Fellowship)</option>
+              <option value="motivational">🔥 Motivational Prayer (Strength & Grit)</option>
+              <option value="success">🏆 Success Prayer (Breakthrough & Favor)</option>
+              <option value="failure">🌅 Failure Prayer (Grace & Comeback)</option>
+            </select>
+            <input type="text" id="prayerNoteInput" class="in" placeholder="Optional personal context (e.g. chemistry exam, trip to Nairobi, my parents)..." style="flex:2;min-width:220px;" />
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn" id="genPrayerBtn">📖 Extract & Generate Prayer</button>
+            <button class="btn primary" id="pushSpecPrayerBtn">📡 Generate & Push to Status</button>
+          </div>
+          <div id="prayerStudioOut" style="margin-top:10px;font-size:11.5px;color:#e4f5f2;white-space:pre-wrap;display:none;padding:11px;border-radius:10px;background:rgba(0,0,0,.42);border:1px solid var(--stroke);"></div>
+        </div>
+
+        <div class="bh-card" style="grid-column:1 / -1;">
+          <h4>🎙️ AI Neural Voice & Audio Status Generator (Bible / Prayer / Text → Ready-to-Listen Speech)</h4>
+          <p>Auto-generate a Bible verse, Prayer, Motivation, or custom text into studio-quality AI Neural Audio — listen right here or push spoken voice straight to your WhatsApp Status!</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <select id="ttsCatSelect" class="in" style="flex:1;min-width:170px;">
+              <option value="bible">📖 Bible Verse → Audio</option>
+              <option value="prayer">🙏 Prayer → Audio</option>
+              <option value="motivate">🔥 Motivation → Audio</option>
+              <option value="quote">💡 Quote → Audio</option>
+              <option value="psych">🧠 Psychology → Audio</option>
+              <option value="">✍️ Custom Text Below → Audio</option>
+            </select>
+            <select id="ttsVoiceSelect" class="in" style="flex:1;min-width:190px;">
+              <option value="andrew">🎙️ Andrew (Warm Studio · US)</option>
+              <option value="aria">🎙️ Aria (Expressive Female · US)</option>
+              <option value="chilemba">🎙️ Chilemba (Kenyan Male · KE)</option>
+              <option value="asilia">🎙️ Asilia (Kenyan Female · KE)</option>
+              <option value="ryan">🎙️ Ryan (Deep British · UK)</option>
+              <option value="swahili">🎙️ Rafiki (Kiswahili · KE)</option>
+            </select>
+          </div>
+          <textarea id="ttsInput" class="in" style="min-height:66px;margin-bottom:8px;" placeholder="Optional verse/topic (e.g. John 3:16, exam, Psalm 23) — or custom text when 'Custom Text' is selected..."></textarea>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn" id="genTtsBtn">🎧 Generate AI Audio & Listen</button>
+            <button class="btn primary" id="pushTtsStatusBtn">📡 Generate AI Voice & Push to Status</button>
+          </div>
+          <div id="ttsPlayerWrap" style="display:none;margin-top:11px;padding:11px;border-radius:11px;background:rgba(0,0,0,.45);border:1px solid var(--stroke);">
+            <audio id="ttsAudioEl" controls style="width:100%;height:38px;margin-bottom:8px;"></audio>
+            <div id="ttsMetaLine" style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-bottom:6px;"></div>
+            <div id="ttsScriptPreview" style="font-size:11.5px;color:#e4f5f2;white-space:pre-wrap;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANE 3: COMMAND EXPLORER -->
+    <div class="bh-pane" id="bh-cmds">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <input type="text" id="cmdSearch" class="in" placeholder="Search 132 commands (e.g. pushstatus, bible, psychology, ytmp4, gclink, ai)..." style="flex:2;min-width:210px;" />
+        <select id="cmdCat" class="in" style="flex:1;min-width:150px;">
+          <option value="all">All Categories</option>
+          <option value="core">⚡ Core</option>
+          <option value="download">📥 Downloader</option>
+          <option value="group">🛡️ Group Controller</option>
+          <option value="mind">🧠 Mind, Spirit & Bible</option>
+          <option value="voice">🎙️ AI Voice & TTS</option>
+          <option value="status">📡 Push to Status</option>
+          <option value="ai">🤖 AI & Anime</option>
+          <option value="media">🎨 Stickers & Media</option>
+          <option value="tools">🧰 Cyber Utilities</option>
+          <option value="owner">👑 Owner & CD</option>
+        </select>
+      </div>
+      <div class="cmd-list" id="cmdGrid"></div>
+    </div>
+
+    <!-- PANE 4: BOT CONTROLS & LOGS -->
+    <div class="bh-pane" id="bh-settings">
+      <div class="bh-grid">
+        <div class="bh-card">
+          <h4>⚙️ Live Runtime Controls</h4>
+          <div class="set-row">
+            <div><b>Access Mode</b><small>Who can run commands</small></div>
+            <select id="cfgMode" class="in" style="width:125px;padding:5px 8px;">
+              <option value="public">PUBLIC</option>
+              <option value="private">PRIVATE</option>
+            </select>
+          </div>
+          <div class="set-row">
+            <div><b>Prefix & Cooldown (.cd)</b><small>Command trigger & anti-flood seconds</small></div>
+            <div style="display:flex;gap:5px;">
+              <input type="text" id="cfgPrefix" class="in" style="width:48px;text-align:center;padding:5px;" maxlength="3" />
+              <input type="number" id="cfgCd" class="in" style="width:64px;text-align:center;padding:5px;" min="0" max="300" title="Cooldown seconds" />
+            </div>
+          </div>
+          <div class="set-row">
+            <div><b>Auto-AI Chatbot</b><small>Reply without prefix</small></div>
+            <select id="cfgChatbot" class="in" style="width:125px;padding:5px 8px;">
+              <option value="off">OFF</option>
+              <option value="dm">DM Only</option>
+              <option value="group">Groups (@tag)</option>
+              <option value="all">ALL</option>
+            </select>
+          </div>
+          <div class="set-row">
+            <div><b>Anti-Call Shield</b><small>Auto-reject voice/video calls</small></div>
+            <select id="cfgAntiCall" class="in" style="width:125px;padding:5px 8px;">
+              <option value="off">OFF</option>
+              <option value="reject">REJECT</option>
+              <option value="block">REJECT+BLOCK</option>
+            </select>
+          </div>
+          <div class="set-row">
+            <div><b>Anti-Delete Recovery</b><small>Recover deleted messages</small></div>
+            <select id="cfgAntiDelete" class="in" style="width:125px;padding:5px 8px;">
+              <option value="off">OFF</option>
+              <option value="dm">Owner DM</option>
+              <option value="chat">Same Chat</option>
+            </select>
+          </div>
+          <div class="set-row">
+            <div><b>Auto-View & React Status</b><small>Automatically view WhatsApp statuses</small></div>
+            <input type="checkbox" id="cfgAutoStatus" />
+          </div>
+          <button class="btn primary" id="saveCfgBtn" style="width:100%;justify-content:center;margin-top:6px;">💾 Save Bot Settings</button>
+        </div>
+
+        <div class="bh-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <h4 style="margin:0;">🖥️ Live Telemetry Console</h4>
+            <button class="btn" id="refreshLogsBtn" style="padding:4px 9px;font-size:9px;">🔄 Refresh</button>
+          </div>
+          <div class="log-box" id="logBox">Connecting to TEXMEX-MD telemetry stream...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MOOD DOCK -->
+<footer class="dock" id="moodDock"></footer>
+
+<!-- SIGNATURE BADGE -->
+<a class="sig-badge" href="https://github.com/texmexlite-67/TEMEX-MD" target="_blank" rel="noopener">
+  ⚡ Developed by <b>TEXMEX</b> with ❤️
+</a>
+
+<!-- DEV & TELEMETRY DRAWER -->
+<div class="drawer" id="devDrawer">
+  <h4>⟁ Engine & Bot Telemetry</h4>
+  <p style="font-size:11px;color:#8ea6a4;margin:6px 0 10px;line-height:1.55">
+    Live tuning for the 3D WebGL room, ambient synth pad, and TEXMEX-MD runtime metrics.
+  </p>
+  <div class="presets" id="presets">
+    <button data-q="ultra">Ultra</button>
+    <button data-q="high" class="on">High</button>
+    <button data-q="balanced">Balanced</button>
+    <button data-q="battery">Battery</button>
+  </div>
+  <div class="row"><label>Particle count</label><span class="val" id="vParticles">900</span></div>
+  <div class="row" style="border:0;padding-top:0"><input type="range" id="sParticles" min="0" max="2500" step="50" style="width:100%"></div>
+  <div class="row"><label>Render scale (DPR)</label><span class="val" id="vDpr">1.5</span></div>
+  <div class="row" style="border:0;padding-top:0"><input type="range" id="sDpr" min="0.5" max="2" step="0.05" style="width:100%"></div>
+  <div class="row"><label>Glow intensity</label><span class="val" id="vGlow">1.00</span></div>
+  <div class="row" style="border:0;padding-top:0"><input type="range" id="sGlow" min="0" max="2" step="0.05" style="width:100%"></div>
+  <div class="row"><label>Time warp</label><span class="val" id="vWarp">1.00×</span></div>
+  <div class="row" style="border:0;padding-top:0"><input type="range" id="sWarp" min="0" max="3" step="0.05" style="width:100%"></div>
+  <div class="row"><label>Auto orbit</label><button class="sw on" id="tOrbit"></button></div>
+  <div class="row"><label>Wireframe core</label><button class="sw on" id="tWire"></button></div>
+  <div class="row"><label>Freeze time</label><button class="sw" id="tFreeze"></button></div>
+  <div class="row"><label>Debug HUD</label><button class="sw" id="tHud"></button></div>
+  <div class="row" style="border:0">
+    <button class="btn" id="reseed" style="flex:1;justify-content:center">↻ Reseed</button>
+    <button class="btn" id="resetAll" style="flex:1;justify-content:center">Reset</button>
+  </div>
+  <div class="statgrid">
+    <div>FPS<b id="stFps">–</b></div>
+    <div>Graphics<b id="stApi">–</b></div>
+    <div>Triangles<b id="stTris">–</b></div>
+    <div>Draws<b id="stDraws">–</b></div>
+    <div>Mood<b id="stMood">–</b></div>
+    <div>Crew<b id="stCrew">–</b></div>
+    <div>WA Link<b id="stWa">–</b></div>
+    <div>Bot Uptime<b id="stUp">–</b></div>
+    <div>Commands<b id="stCmds">–</b></div>
+    <div>Memory<b id="stRam">–</b></div>
+  </div>
+</div>
+
+<div class="modal" id="modal"><div class="card" id="modalCard"></div></div>
+<div class="toast" id="toast"></div>
+<div class="hud" id="hud"></div>
+<div class="boot" id="boot">
+  <div>
+    ⟁ initialising texmex-md // 3d nexus
+    <div style="font-size:9px;opacity:.7;margin-top:6px;letter-spacing:.14em">developed by TEXMEX with ❤️</div>
+    <div class="bar"><i></i></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   TEXMEX-MD // BAZE 3D — Spatial Chill Room + WhatsApp MD Hub
+   modules: store → moods → audio → oracle(ai) → bothub → webgl
+   ============================================================ */
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const rnd=(a=0,b=1)=>a+Math.random()*(b-a);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const hexToRgb=h=>{const n=parseInt(h.slice(1),16);return [((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255];};
+
+/* ---------------- moods ---------------- */
+const MOODS=[
+ {id:'chill',name:'Chill',emoji:'🌊',tag:'sea breeze, low tempo',
+  bg:['#07131f','#0d2b3a','#19c7a8'],accent:'#3fe3c4',speed:.6,energy:.5,
+  chord:[110,164.81,220,329.63],cut:1100,lfo:.07,text:'the room breathes slow and nobody is rushing anything'},
+ {id:'hype',name:'Hype',emoji:'🔥',tag:'volume up, chaos allowed',
+  bg:['#1a0710','#3a0d1f','#ff4d3d'],accent:'#ff7a45',speed:1.9,energy:.95,
+  chord:[146.83,220,293.66,440],cut:2400,lfo:.22,text:'the energy is already loud before anyone speaks'},
+ {id:'deep',name:'Deep Talk',emoji:'🌌',tag:'3am truths, zero judgement',
+  bg:['#0a0718','#1b1140','#7b5cff'],accent:'#9b7bff',speed:.45,energy:.35,
+  chord:[98,146.83,196,246.94],cut:820,lfo:.05,text:'words come slower and they land heavier'},
+ {id:'nostalgia',name:'Nostalgia',emoji:'📼',tag:'old photos, old jokes, old us',
+  bg:['#1a0f08','#3a2210','#ff9e5e'],accent:'#ffb27a',speed:.7,energy:.5,
+  chord:[130.81,196,261.63,392],cut:1400,lfo:.09,text:'everything smells like a screenshot from two years ago'},
+ {id:'sleepy',name:'Sleepy',emoji:'😴',tag:'half asleep, still here',
+  bg:['#060a18','#131b3a','#7f8cff'],accent:'#8f9bff',speed:.25,energy:.2,
+  chord:[87.31,130.81,174.61,220],cut:640,lfo:.04,text:'lights are low, replies are slower, nobody is leaving'},
+ {id:'giggle',name:'Giggle',emoji:'😂',tag:'nothing serious allowed',
+  bg:['#0a1408','#20300f','#b6ff4d'],accent:'#c6ff5e',speed:1.4,energy:.8,
+  chord:[164.81,246.94,329.63,493.88],cut:2000,lfo:.17,text:'one meme away from the whole chat derailing'},
+ {id:'lowkey',name:'Lowkey',emoji:'🫥',tag:'lurking, no pressure',
+  bg:['#0b0d0e','#1c2224','#8aa29a'],accent:'#9fb8ae',speed:.35,energy:.3,
+  chord:[103.83,155.56,207.65,261.63],cut:950,lfo:.06,text:'everyone is online, nobody is typing — comfortable silence'},
+];
+const MOOD=id=>MOODS.find(m=>m.id===id)||MOODS[0];
+
+/* ---------------- store ---------------- */
+const KEY='texmex.baze3d.v2';
+const DEFAULT_MEMBERS=[
+ {id:'m1',name:'Texmex',emoji:'⚡'},
+ {id:'m2',name:'Kevo',emoji:'🎧'},
+ {id:'m3',name:'Wanjiku',emoji:'🌙'},
+ {id:'m4',name:'Brian',emoji:'🍿'},
+ {id:'m5',name:'Shiro',emoji:'✨'},
+ {id:'m6',name:'Denno',emoji:'🔥'},
+];
+const todayKey=()=>new Date().toISOString().slice(0,10);
+const DEFAULT_SETTINGS={quality:'high',particles:900,dpr:1.5,glow:1,warp:1,orbit:true,wire:true,freeze:false,hud:false,sound:false};
+
+const state={
+  group:'TEXMEX // BAZE',
+  members:DEFAULT_MEMBERS.map(m=>({...m})),
+  checkins:{},
+  history:[],
+  me:'m1',
+  mood:'chill',
+  selected:null,
+  checkinDate:todayKey(),
+  settings:{...DEFAULT_SETTINGS},
+};
+
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify({
+  group:state.group,members:state.members,checkins:state.checkins,history:state.history,
+  me:state.me,mood:state.mood,settings:state.settings,checkinDate:state.checkinDate})); }catch(e){} }
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY); if(!raw) return;
+    const d=JSON.parse(raw);
+    Object.assign(state,{group:d.group||state.group,members:d.members||state.members,
+      checkins:d.checkins||{},history:d.history||[],me:d.me||'m1',
+      mood:d.mood||'chill',settings:{...DEFAULT_SETTINGS,...(d.settings||{})},checkinDate:d.checkinDate});
+    if(state.checkinDate!==todayKey()){ state.checkins={}; state.checkinDate=todayKey(); }
+  }catch(e){}
+}
+
+function crewStats(){
+  const ids=state.members.map(m=>m.id);
+  const cast={};
+  ids.forEach(id=>{const m=state.checkins[id]; if(m) cast[m]=(cast[m]||0)+1;});
+  const total=Object.values(cast).reduce((a,b)=>a+b,0);
+  let dominant=state.mood, best=-1;
+  for(const k in cast){ if(cast[k]>best){best=cast[k];dominant=k;} }
+  const avgEnergy = total? Object.entries(cast).reduce((a,[k,v])=>a+v*MOOD(k).energy,0)/total : MOOD(state.mood).energy;
+  return {cast,total,checked:total,of:ids.length,dominant,avgEnergy,spread:Object.keys(cast).length};
+}
+
+/* ============================================================
+   AUDIO — procedural generative pad, zero assets, zero latency
+   ============================================================ */
+const Audio_={
+  ctx:null, master:null, on:false, voices:[], filter:null, delay:null, lfo:null,
+  init(){
+    if(this.ctx) return;
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    const ctx=this.ctx=new AC();
+    const master=this.master=ctx.createGain(); master.gain.value=0;
+    const comp=ctx.createDynamicsCompressor();
+    comp.threshold.value=-22; comp.ratio.value=3.2; comp.attack.value=.01; comp.release.value=.3;
+    const filt=this.filter=ctx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=1100; filt.Q.value=.7;
+    const dly=this.delay=ctx.createDelay(1.2); dly.delayTime.value=.42;
+    const fb=ctx.createGain(); fb.gain.value=.34;
+    const wet=ctx.createGain(); wet.gain.value=.3;
+    filt.connect(master); filt.connect(dly); dly.connect(fb); fb.connect(dly);
+    dly.connect(wet); wet.connect(master);
+    master.connect(comp); comp.connect(ctx.destination);
+    const chord=MOOD(state.mood).chord;
+    this.voices=chord.map((f,i)=>{
+      const o=ctx.createOscillator(); o.type=i===0?'sine':'sawtooth';
+      o.frequency.value=f;
+      o.detune.value=(i-1.5)*6;
+      const g=ctx.createGain(); g.gain.value=.055/(1+i*.5);
+      o.connect(g); g.connect(filt); o.start();
+      return {o,g,base:f};
+    });
+    const lfo=this.lfo=ctx.createOscillator(); lfo.type='sine'; lfo.frequency.value=.07;
+    const lg=ctx.createGain(); lg.gain.value=320; lfo.connect(lg); lg.connect(filt.frequency); lfo.start();
+    this.blipTimer=setInterval(()=>{ if(this.on && state.settings.sound && Math.random()<.55) this.blip(); },2600);
+  },
+  blip(){
+    if(!this.ctx||!this.on) return;
+    const ctx=this.ctx, m=MOOD(state.mood);
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type='triangle';
+    o.frequency.value=pick(m.chord)*pick([2,3,4,2]);
+    g.gain.setValueAtTime(0,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(.09,ctx.currentTime+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+1.6);
+    o.connect(g); g.connect(this.filter||this.master);
+    o.start(); o.stop(ctx.currentTime+1.7);
+  },
+  toggle(v){
+    this.init(); if(!this.ctx) return false;
+    if(this.ctx.state==='suspended') this.ctx.resume();
+    this.on = v===undefined? !this.on : v;
+    const t=this.ctx.currentTime;
+    this.master.gain.cancelScheduledValues(t);
+    this.master.gain.linearRampToValueAtTime(this.on?.24:0, t+.5);
+    return this.on;
+  },
+  retune(moodId){
+    if(!this.ctx) return;
+    const m=MOOD(moodId), t=this.ctx.currentTime;
+    this.voices.forEach((v,i)=>{
+      if(!m.chord[i]) return;
+      v.base=m.chord[i];
+      v.o.frequency.cancelScheduledValues(t);
+      v.o.frequency.setTargetAtTime(m.chord[i], t, .35);
+    });
+    this.filter.frequency.setTargetAtTime(m.cut, t, .5);
+    this.lfo.frequency.setTargetAtTime(m.lfo, t, .5);
+  },
+  duck(){
+    if(!this.ctx||!this.on) return;
+    const t=this.ctx.currentTime, g=this.master.gain;
+    g.cancelScheduledValues(t); g.setValueAtTime(.24,t);
+    g.linearRampToValueAtTime(.1,t+.25); g.linearRampToValueAtTime(.24,t+1.6);
+  }
+};
+
+/* ============================================================
+   ORACLE — local vibe intelligence + live TEXMEX-MD AI bridge
+   ============================================================ */
+const Oracle=(()=>{
+  const VIBES={
+    chill:  ['It is a low-tempo night and the group is actually calm — rare, protect it.'],
+    hype:   ['Somebody already dropped a clip and now the chat is ungovernable.'],
+    deep:   ['Everybody is typing long paragraphs. This is the 3am slot.'],
+    nostalgia:['Someone scrolled back far enough to find old memories. Proceed carefully.'],
+    sleepy: ['Half the crew is horizontal. Keep the volume where it is.'],
+    giggle: ['Three memes deep and no one has said anything real yet.'],
+    lowkey: ['Everyone online, nobody talking. Comfortable, not awkward.'],
+  };
+  const PLANS={
+    chill:  [['Sofa sync','Someone plays a 40-min mix, everyone reacts with one emoji only'],
+             ['No-topic room','Voice note chain: say the last good thing that happened'],
+             ['Slow scroll','Share one photo you never sent anyone']],
+    hype:   [['Snippet court','45 seconds each, best bar or best clip wins the pin'],
+             ['Rapid roast','Two minutes, no repeating a joke, then it is closed'],
+             ['Who said it','Pull old quotes, guess the author']],
+    deep:   [['One question','Each person answers: what are you actually working toward?'],
+             ['No-advice rule','Vent for 5 minutes, replies must be feelings only'],
+             ['Check-in round','Honest score out of 10 for the week, no explanation needed']],
+    nostalgia: [['Throwback scroll','Pick one chat moment and retell it wrong on purpose'],
+             ['Old voice notes','Reply to something you sent two years ago'],
+             ['Where are they now','Update the group on someone who left the chat']],
+    sleepy: [['Playlist handoff','One song each, then whoever is last says goodnight'],
+             ['Two-minute recap','Say the day in three messages, then mute'],
+             ['No demands','Camera-free, mic-free, just reactions until the chat fades']],
+    giggle: [['Baze award show','Hand out absurd awards for the week'],
+             ['Bad edit battle','Worst possible edit of a group photo'],
+             ['Voice note roulette','Random pitch-shift, guess who is talking']],
+    lowkey: [['Silent co-working','Everyone mutes and does their own thing for 25 min'],
+             ['One-link rule','Drop one link, no commentary'],
+             ['Lurker roll call','React only, no speaking, see who breaks first']],
+  };
+  const TALK={
+    chill:['What is the most unnecessary thing you bought this year?','Rate the last week out of 10, defend it.','Who in this chat gives the best advice?'],
+    hype:['Who is the loudest when they lose a game?','Best hype song, no skips.','Who would survive a reality show?'],
+    deep:['What changed about you that nobody here noticed?','What is the thing you keep postponing?','Who do you call first when it goes wrong?'],
+    nostalgia:['What is the most "we were so broke" memory here?','Which era of this group was the funniest?','What did we stop doing that we should bring back?'],
+    sleepy:['What is the last thing that made you laugh today?','One word for the day. Go.','Who is definitely still awake?'],
+    giggle:['Who has the worst taste in this chat?','Rate everyone\'s profile photo, be honest.','Most cursed thing you have sent at 2am?'],
+    lowkey:['What are you working on quietly?','Drop one thing you are proud of this month.','Who is the best listener here?'],
+  };
+  let seed=0;
+  const rndS=()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
+  const pickS=a=>a[Math.floor(rndS()*a.length)];
+  function setSeed(n){ seed = (n>>>0) || 1471; }
+
+  function vibeLine(){
+    const st=crewStats(), d=st.checked? st.dominant : state.mood;
+    const base=pickS(VIBES[d]||VIBES.chill);
+    const extra=[];
+    if(st.checked===0) extra.push('No one has checked in yet — you are reading the room solo.');
+    else if(st.checked===st.of) extra.push('Full house checked in. Unanimous-ish.');
+    else extra.push(`${st.checked} of ${st.of} checked in today.`);
+    if(st.spread>=3) extra.push('The moods are split — a chaotic but good kind of split.');
+    if(st.avgEnergy>.78) extra.push('Energy is running high, so expect a long night.');
+    if(st.avgEnergy<.35) extra.push('Energy is low. Do not force activities.');
+    extra.push(pickS(['the room agrees without saying it','nobody is in a hurry','this is what chill actually looks like']));
+    return {mood:d,lines:[base,...extra]};
+  }
+  function plan(){ const d=crewStats().dominant; const p=PLANS[d]||PLANS.chill;
+    const sh=[...p]; for(let i=sh.length-1;i>0;i--){const j=Math.floor(rndS()*(i+1));[sh[i],sh[j]]=[sh[j],sh[i]];}
+    return sh.map(([title,desc],i)=>({n:i+1,title,desc}));
+  }
+  function talk(){ const arr=TALK[crewStats().dominant]||TALK.chill;
+    const i=Math.floor(rndS()*arr.length); return arr[i]; }
+  function energyCurve(){
+    const base=crewStats().avgEnergy||.5, out=[];
+    for(let i=0;i<8;i++){
+      const h=(new Date().getHours()+i)%24;
+      const diurnal = h<6? .18 : h<10? .55 : h<14? .8 : h<18? .68 : h<22? .9 : .55;
+      out.push(clamp(base*.55+diurnal*.65+(rndS()-.5)*.12,0,.1)+ (base*.55+diurnal*.65));
+    }
+    return out.map(v=>clamp(v,0,1));
+  }
+  return {setSeed,vibeLine,plan,talk,energyCurve,PLANS,TALK};
+})();
+
+/* ============================================================
+   TOASTS & CLIPBOARD
+   ============================================================ */
+let toastTimer;
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+function copyText(txt,onOk,onFail){
+  const done=ok=>{ try{ ok&&ok(); }catch(e){} };
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(()=>done(onOk),()=>done(onFail));
+      return;
+    }
+    const ta=document.createElement('textarea');
+    ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    const ok=document.execCommand && document.execCommand('copy');
+    document.body.removeChild(ta);
+    done(ok?onOk:onFail);
+  }catch(e){ done(onFail); }
+}
+
+/* ============================================================
+   TINY MATH & WEBGL 3D RENDERER
+   ============================================================ */
+const M4={
+  ident:()=>new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]),
+  mul(o,a,b){
+    for(let i=0;i<4;i++)for(let j=0;j<4;j++){
+      let s=0; for(let k=0;k<4;k++) s+=a[k*4+j]*b[i*4+k];
+      o[i*4+j]=s;
+    } return o;
+  },
+  perspective(o,fovy,asp,near,far){
+    const f=1/Math.tan(fovy/2), nf=1/(near-far);
+    o.set([f/asp,0,0,0, 0,f,0,0, 0,0,(far+near)*nf,-1, 0,0,2*far*near*nf,0]); return o;
+  },
+  lookAt(o,eye,center,up){
+    let zx=eye[0]-center[0], zy=eye[1]-center[1], zz=eye[2]-center[2];
+    let l=Math.hypot(zx,zy,zz)||1; zx/=l; zy/=l; zz/=l;
+    let xx=up[1]*zz-up[2]*zy, xy=up[2]*zx-up[0]*zz, xz=up[0]*zy-up[1]*zx;
+    l=Math.hypot(xx,xy,xz)||1; xx/=l; xy/=l; xz/=l;
+    const yx=zy*xz-zz*xy, yy=zz*xx-zx*xz, yz=zx*xy-zy*xx;
+    o.set([xx,yx,zx,0, xy,yy,zy,0, xz,yz,zz,0,
+      -(xx*eye[0]+xy*eye[1]+xz*eye[2]),
+      -(yx*eye[0]+yy*eye[1]+yz*eye[2]),
+      -(zx*eye[0]+zy*eye[1]+zz*eye[2]), 1]);
+    return o;
+  },
+  trs(o,tx,ty,tz,s){
+    o.set([s,0,0,0, 0,s,0,0, 0,0,s,0, tx,ty,tz,1]); return o;
+  }
+};
+
+const R=(()=>{
+  const canvas=$('#gl');
+  const gl=canvas.getContext('webgl',{antialias:true,alpha:false,powerPreference:'high-performance'})
+        || canvas.getContext('experimental-webgl');
+  if(!gl){ $('#boot').textContent='webgl not available in this browser'; return null; }
+
+  const VS_BG=`attribute vec2 aP; varying vec2 vUv;
+    void main(){ vUv=aP*.5+.5; gl_Position=vec4(aP,0.,1.); }`;
+  const FS_BG=`precision highp float; varying vec2 vUv;
+    uniform vec3 uA,uB,uC; uniform float uTime,uEnergy;
+    void main(){
+      vec2 p=vUv-.5; p.y+=.06;
+      float d=length(p);
+      vec3 col=mix(uB,uA,smoothstep(.05,.85,d));
+      float glow=exp(-d*3.4)*(.55+uEnergy*.7);
+      col+=uC*glow*.5;
+      float band=sin(vUv.y*24.+uTime*.35)*.5+.5;
+      col+=uC*band*.022;
+      col*=1.-smoothstep(.35,.95,d)*.55;
+      gl_FragColor=vec4(col,1.);
+    }`;
+  const VS_CORE=`attribute vec3 aP; attribute vec3 aN;
+    uniform mat4 uProj,uView,uModel; uniform float uTime,uEnergy,uGlow;
+    varying vec3 vN,vWp; varying float vD;
+    float noise(vec3 p){ p=fract(p*.3183099+vec3(.11,.23,.37)); p*=17.;
+      return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+    float fbm(vec3 p){ float v=0.,a=.5;
+      for(int i=0;i<4;i++){ v+=a*noise(p); p*=2.03; a*=.5; } return v; }
+    void main(){
+      float n=fbm(aP*1.7+vec3(0.,uTime*.22,0.));
+      float n2=fbm(aP*3.1-vec3(uTime*.13));
+      float disp=(n*.14+n2*.05)*(.6+uEnergy*.9);
+      float pulse=sin(uTime*1.6+aP.y*3.)*.012*(1.+uEnergy);
+      vec3 pos=aP*(1.+disp+pulse);
+      vec4 wp=uModel*vec4(pos,1.);
+      vWp=wp.xyz; vN=normalize(mat3(uModel[0].xyz,uModel[1].xyz,uModel[2].xyz)*aN);
+      vD=n;
+      gl_Position=uProj*uView*wp;
+    }`;
+  const FS_CORE=`precision highp float; varying vec3 vN,vWp; varying float vD;
+    uniform vec3 uA,uB; uniform float uGlow,uTime,uEnergy;
+    void main(){
+      vec3 V=normalize(vec3(0.,0.,6.)-vWp);
+      float fres=pow(1.-clamp(dot(normalize(vN),V),0.,1.),2.1);
+      float caust=abs(sin(vWp.y*7.+vWp.x*5.+uTime*.6))*.5+.5;
+      vec3 col=mix(uB*.5,uA,fres*1.15);
+      col+=uA*pow(fres,3.)*1.6*uGlow;
+      col*= .75+vD*.7;
+      col+=uA*caust*.06*(1.+uEnergy);
+      gl_FragColor=vec4(col,1.);
+    }`;
+  const VS_LINE=`attribute vec3 aP; uniform mat4 uProj,uView,uModel; varying float vY;
+    void main(){ vY=aP.y; gl_Position=uProj*uView*uModel*vec4(aP,1.); }`;
+  const FS_LINE=`precision highp float; varying float vY; uniform vec3 uA; uniform float uAlpha;
+    void main(){ gl_FragColor=vec4(uA,uAlpha); }`;
+  const VS_PT=`attribute vec3 aP; attribute vec3 aS;
+    uniform mat4 uProj,uView; uniform float uTime,uDpr,uEnergy;
+    varying float vL;
+    void main(){
+      vec3 p=aP;
+      float t=uTime*aS.z*(.25+uEnergy*.4);
+      p.y=mod(p.y+t*1.4+30.,30.)-15.;
+      p.x+=sin(t*1.7+aS.x*6.28)*.45;
+      p.z+=cos(t*1.3+aS.y*6.28)*.45;
+      vec4 mv=uView*vec4(p,1.);
+      gl_Position=uProj*mv;
+      gl_PointSize=(1.2+aS.x*2.6)*uDpr*(10./max(-mv.z,.6));
+      vL=.35+aS.y*.65;
+    }`;
+  const FS_PT=`precision highp float; varying float vL; uniform vec3 uA,uC; uniform float uGlow;
+    void main(){
+      vec2 c=gl_PointCoord-.5; float d=length(c);
+      if(d>.5) discard;
+      float a=pow(1.-d*2.,2.);
+      gl_FragColor=vec4(mix(uC,uA,d)*a*(.5+vL*.5)*uGlow,a*.85);
+    }`;
+
+  function sh(type,src){
+    const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s),src);
+    return s;
+  }
+  function prog(vs,fs){
+    const p=gl.createProgram();
+    gl.attachShader(p,sh(gl.VERTEX_SHADER,vs)); gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));
+    gl.linkProgram(p);
+    if(!gl.getProgramParameter(p,gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(p));
+    return p;
+  }
+  const P={
+    bg:prog(VS_BG,FS_BG), core:prog(VS_CORE,FS_CORE),
+    line:prog(VS_LINE,FS_LINE), pt:prog(VS_PT,FS_PT)
+  };
+  const buf=(data,type=gl.ARRAY_BUFFER)=>{
+    const b=gl.createBuffer(); gl.bindBuffer(type,b); gl.bufferData(type,data,gl.STATIC_DRAW); return b;
+  };
+
+  function icosphere(sub){
+    let t=(1+Math.sqrt(5))/2;
+    let v=[[-1,t,0],[1,t,0],[-1,-t,0],[1,-t,0],[0,-1,t],[0,1,t],[0,-1,-t],[0,1,-t],
+           [t,0,-1],[t,0,1],[-t,0,-1],[-t,0,1]].map(p=>{
+      const l=Math.hypot(...p); return p.map(x=>x/l);
+    });
+    let f=[[0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],[1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],
+           [3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],[4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]];
+    for(let s=0;s<sub;s++){
+      const cache={}, nf=[];
+      const mid=(a,b)=>{
+        const k=a<b?a+'_'+b:b+'_'+a;
+        if(cache[k]!==undefined) return cache[k];
+        const m=[(v[a][0]+v[b][0])/2,(v[a][1]+v[b][1])/2,(v[a][2]+v[b][2])/2];
+        const l=Math.hypot(...m); v.push(m.map(x=>x/l)); cache[k]=v.length-1; return cache[k];
+      };
+      for(const [a,b,c] of f){
+        const ab=mid(a,b), bc=mid(b,c), ca=mid(c,a);
+        nf.push([a,ab,ca],[b,bc,ab],[c,ca,bc],[ab,bc,ca]);
+      }
+      f=nf;
+    }
+    return {v,f};
+  }
+  const ico=icosphere(3);
+  const posArr=new Float32Array(ico.v.length*3), nrmArr=new Float32Array(ico.v.length*3);
+  ico.v.forEach((p,i)=>{ posArr.set(p,i*3); nrmArr.set(p,i*3); });
+  const idxArr=new Uint16Array(ico.f.length*3);
+  ico.f.forEach((fc,i)=>{ idxArr[i*3]=fc[0]; idxArr[i*3+1]=fc[1]; idxArr[i*3+2]=fc[2]; });
+  const edgeSet=new Set(); const edges=[];
+  ico.f.forEach(([a,b,c])=>{
+    [[a,b],[b,c],[c,a]].forEach(([x,y])=>{
+      const k=x<y?x+'_'+y:y+'_'+x;
+      if(!edgeSet.has(k)){ edgeSet.add(k); edges.push(x,y); }
+    });
+  });
+  const wireArr=new Float32Array(edges.length*3);
+  edges.forEach((vi,i)=>wireArr.set(ico.v[vi],i*3));
+
+  const vboPos=buf(posArr), vboNrm=buf(nrmArr), ibo=buf(idxArr,gl.ELEMENT_ARRAY_BUFFER);
+  const vboWire=buf(wireArr);
+  const vboQuad=buf(new Float32Array([-1,-1, 1,-1, -1,1, 1,1]));
+  const triCount=ico.f.length;
+
+  let pCount=0, vboPts=null, vboSeed=null;
+  function buildParticles(n){
+    if(vboPts){ gl.deleteBuffer(vboPts); gl.deleteBuffer(vboSeed); vboPts=vboSeed=null; }
+    n=Math.max(0,n|0);
+    pCount=n;
+    if(n===0) return;
+    const p=new Float32Array(n*3), s=new Float32Array(n*3);
+    for(let i=0;i<n;i++){
+      const r=3.2+Math.random()*7.5, th=Math.random()*Math.PI*2, ph=Math.acos(rnd(-1,1));
+      p[i*3]=r*Math.sin(ph)*Math.cos(th);
+      p[i*3+1]=rnd(-16,16);
+      p[i*3+2]=r*Math.sin(ph)*Math.sin(th);
+      s[i*3]=Math.random(); s[i*3+1]=Math.random(); s[i*3+2]=.4+Math.random()*1.2;
+    }
+    vboPts=buf(p); vboSeed=buf(s);
+  }
+  buildParticles(900);
+
+  const gridLines=[];
+  for(let i=-12;i<=12;i++){
+    gridLines.push(-24,0,i*2, 24,0,i*2);
+    gridLines.push(i*2,0,-24, i*2,0,24);
+  }
+  const vboGrid=buf(new Float32Array(gridLines));
+
+  const U=(p,names)=>names.reduce((a,n)=>(a[n]=gl.getUniformLocation(p,n),a),{});
+  const u={
+    bg:U(P.bg,['uA','uB','uC','uTime','uEnergy']),
+    core:U(P.core,['uProj','uView','uModel','uTime','uEnergy','uGlow','uA','uB']),
+    line:U(P.line,['uProj','uView','uModel','uA','uAlpha']),
+    pt:U(P.pt,['uProj','uView','uTime','uDpr','uEnergy','uA','uC','uGlow'])
+  };
+  let apiLabel = gl.getParameter(gl.VERSION).indexOf('2')>-1?'WebGL 2':'WebGL 1';
+  const proj=M4.ident(), view=M4.ident(), model=M4.ident();
+  const cam={yaw:.6,pitch:.18,dist:6.4,tyaw:.6,tpitch:.18,tdist:6.4,drag:false,px:0,py:0,moved:0};
+  const scene={time:0, accent:[0,0,0], bgA:[0,0,0], bgB:[0,0,0], bgC:[0,0,0], energy:.5, glow:1};
+
+  const stats={fps:0,ms:0,draws:0,tris:0,frames:0,acc:0,lastPush:0};
+  const elStats={
+    fps:$('#stFps'), tris:$('#stTris'),
+    draws:$('#stDraws'), api:$('#stApi'),
+    mood:$('#stMood'), crew:$('#stCrew'),
+    hud:$('#hud'), drawer:$('#devDrawer')
+  };
+
+  function resize(){
+    const dpr=Math.min(window.devicePixelRatio||1, state.settings.dpr);
+    const w=Math.floor(canvas.clientWidth*dpr), h=Math.floor(canvas.clientHeight*dpr);
+    if(canvas.width!==w||canvas.height!==h){ canvas.width=w; canvas.height=h; gl.viewport(0,0,w,h); }
+    return [w,h];
+  }
+
+  function setMoodColors(m){
+    const a=hexToRgb(m.accent), b=hexToRgb(m.bg[1]), c=hexToRgb(m.bg[2]);
+    scene.accent=a; scene.bgA=hexToRgb(m.bg[0]); scene.bgB=b; scene.bgC=c;
+    scene.energy=m.energy;
+  }
+  const crewColors=[];
+
+  function project(p, w, h){
+    const m=new Float32Array(16);
+    M4.mul(m,proj,view);
+    const x=m[0]*p[0]+m[4]*p[1]+m[8]*p[2]+m[12];
+    const y=m[1]*p[0]+m[5]*p[1]+m[9]*p[2]+m[13];
+    const ww=m[3]*p[0]+m[7]*p[1]+m[11]*p[2]+m[15];
+    return [ (x/ww*.5+.5)*w, (1-(y/ww*.5+.5))*h ];
+  }
+
+  let raf=0, last=performance.now();
+  function frame(now){
+    const dt=Math.min((now-last)/1000,.05); last=now;
+    stats.acc+=dt; stats.frames++;
+    if(stats.acc>=.5){ stats.fps=Math.round(stats.frames/stats.acc); stats.frames=0; stats.acc=0; }
+
+    const S=state.settings;
+    const warp=S.freeze?0:S.warp;
+    scene.time+=dt*warp*(0.6+scene.energy*0.9);
+
+    cam.yaw=lerp(cam.yaw,cam.tyaw,.09);
+    cam.pitch=lerp(cam.pitch,cam.tpitch,.09);
+    cam.dist=lerp(cam.dist,cam.tdist,.08);
+    if(S.orbit && !cam.drag) cam.tyaw+=dt*.075*warp;
+
+    const [w,h]=resize();
+    gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.depthMask(true);
+    stats.draws=0; stats.tris=0;
+
+    gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
+    gl.useProgram(P.bg);
+    gl.uniform3fv(u.bg.uA,scene.bgA); gl.uniform3fv(u.bg.uB,scene.bgB); gl.uniform3fv(u.bg.uC,scene.bgC);
+    gl.uniform1f(u.bg.uTime,scene.time); gl.uniform1f(u.bg.uEnergy,scene.energy);
+    gl.bindBuffer(gl.ARRAY_BUFFER,vboQuad);
+    const aBg=gl.getAttribLocation(P.bg,'aP');
+    gl.enableVertexAttribArray(aBg); gl.vertexAttribPointer(aBg,2,gl.FLOAT,false,0,0);
+    gl.drawArrays(gl.TRIANGLE_STRIP,0,4); stats.draws++;
+    gl.enable(gl.DEPTH_TEST); gl.depthMask(true);
+
+    const asp=w/h, cy=Math.cos(cam.yaw), sy=Math.sin(cam.yaw);
+    const eye=[cam.dist*cy*Math.cos(cam.pitch), cam.dist*Math.sin(cam.pitch)+.35, cam.dist*sy*Math.cos(cam.pitch)];
+    M4.perspective(proj, 58*Math.PI/180, asp, .1, 120);
+    M4.lookAt(view, eye, [0,.1,0], [0,1,0]);
+
+    if(pCount>0){
+      gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE); gl.depthMask(false);
+      gl.useProgram(P.pt);
+      gl.uniformMatrix4fv(u.pt.uProj,false,proj);
+      gl.uniformMatrix4fv(u.pt.uView,false,view);
+      gl.uniform1f(u.pt.uTime,scene.time);
+      gl.uniform1f(u.pt.uDpr,S.dpr);
+      gl.uniform1f(u.pt.uEnergy,scene.energy);
+      gl.uniform1f(u.pt.uGlow,S.glow);
+      gl.uniform3fv(u.pt.uA,scene.accent); gl.uniform3fv(u.pt.uC,scene.bgC);
+      const aP=gl.getAttribLocation(P.pt,'aP'), aS=gl.getAttribLocation(P.pt,'aS');
+      gl.bindBuffer(gl.ARRAY_BUFFER,vboPts); gl.enableVertexAttribArray(aP);
+      gl.vertexAttribPointer(aP,3,gl.FLOAT,false,0,0);
+      gl.bindBuffer(gl.ARRAY_BUFFER,vboSeed); gl.enableVertexAttribArray(aS);
+      gl.vertexAttribPointer(aS,3,gl.FLOAT,false,0,0);
+      gl.drawArrays(gl.POINTS,0,pCount); stats.draws++;
+      gl.depthMask(true); gl.disable(gl.BLEND);
+    }
+
+    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+    gl.useProgram(P.line);
+    gl.uniformMatrix4fv(u.line.uProj,false,proj);
+    gl.uniformMatrix4fv(u.line.uView,false,view);
+    M4.trs(model,0,-2.6,0,1);
+    gl.uniformMatrix4fv(u.line.uModel,false,model);
+    gl.uniform3fv(u.line.uA,scene.accent);
+    gl.uniform1f(u.line.uAlpha,.10+S.glow*.05);
+    const aL=gl.getAttribLocation(P.line,'aP');
+    gl.bindBuffer(gl.ARRAY_BUFFER,vboGrid); gl.enableVertexAttribArray(aL);
+    gl.vertexAttribPointer(aL,3,gl.FLOAT,false,0,0);
+    gl.drawArrays(gl.LINES,0,gridLines.length/3); stats.draws++;
+    gl.disable(gl.BLEND);
+
+    const t=scene.time;
+
+    gl.useProgram(P.core);
+    gl.uniformMatrix4fv(u.core.uProj,false,proj);
+    gl.uniformMatrix4fv(u.core.uView,false,view);
+    gl.uniform1f(u.core.uTime,t);
+    gl.uniform1f(u.core.uEnergy,scene.energy);
+    gl.uniform1f(u.core.uGlow,S.glow);
+    gl.uniform3fv(u.core.uA,scene.accent);
+    gl.uniform3fv(u.core.uB,scene.bgC);
+    const aC=gl.getAttribLocation(P.core,'aP'), aN=gl.getAttribLocation(P.core,'aN');
+    gl.bindBuffer(gl.ARRAY_BUFFER,vboPos); gl.enableVertexAttribArray(aC);
+    gl.vertexAttribPointer(aC,3,gl.FLOAT,false,0,0);
+    gl.bindBuffer(gl.ARRAY_BUFFER,vboNrm); gl.enableVertexAttribArray(aN);
+    gl.vertexAttribPointer(aN,3,gl.FLOAT,false,0,0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ibo);
+
+    const pulse=1+Math.sin(t*1.1)*.03;
+    M4.trs(model,0,.1+Math.sin(t*.7)*.06,0,1.35*pulse);
+    gl.uniformMatrix4fv(u.core.uModel,false,model);
+    gl.drawElements(gl.TRIANGLES,idxArr.length,gl.UNSIGNED_SHORT,0);
+    stats.draws++; stats.tris+=triCount;
+
+    crewColors.forEach((c,i)=>{
+      const ang=(i/crewColors.length)*Math.PI*2 + t*.06;
+      const rx=2.75, ry=-.35+Math.sin(t*.5+i)*.34;
+      const sel=state.selected===c.id;
+      const sc=(sel? .52:.34)*(1+Math.sin(t*1.4+i)*.05);
+      M4.trs(model, Math.cos(ang)*rx, ry, Math.sin(ang)*rx, sc);
+      gl.uniformMatrix4fv(u.core.uModel,false,model);
+      gl.uniform3fv(u.core.uA,c.rgb);
+      gl.uniform3fv(u.core.uB,c.rgb.map(x=>x*.25));
+      gl.drawElements(gl.TRIANGLES,idxArr.length,gl.UNSIGNED_SHORT,0);
+      stats.draws++; stats.tris+=triCount;
+    });
+
+    if(S.wire){
+      gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
+      gl.useProgram(P.line);
+      gl.uniformMatrix4fv(u.line.uProj,false,proj);
+      gl.uniformMatrix4fv(u.line.uView,false,view);
+      M4.trs(model,0,.1,0,2.02+pulse*.05+Math.sin(t*.9)*.03);
+      gl.uniformMatrix4fv(u.line.uModel,false,model);
+      gl.uniform3fv(u.line.uA,scene.accent);
+      gl.uniform1f(u.line.uAlpha,.13);
+      const aL2=gl.getAttribLocation(P.line,'aP');
+      gl.bindBuffer(gl.ARRAY_BUFFER,vboWire); gl.enableVertexAttribArray(aL2);
+      gl.vertexAttribPointer(aL2,3,gl.FLOAT,false,0,0);
+      gl.drawArrays(gl.LINES,0,wireArr.length/3); stats.draws++;
+      gl.disable(gl.BLEND);
+    }
+
+    if(S.hud){
+      elStats.hud.textContent =
+        `fps ${stats.fps}   draws ${stats.draws}   tris ${(stats.tris/1000).toFixed(1)}k\n`+
+        `mood ${state.mood}   energy ${scene.energy.toFixed(2)}\n`+
+        `cam yaw ${cam.yaw.toFixed(2)} pitch ${cam.pitch.toFixed(2)} dist ${cam.dist.toFixed(2)}\n`+
+        `dpr ${S.dpr.toFixed(2)}  particles ${pCount}  t ${t.toFixed(1)}`;
+    }
+    if(now-stats.lastPush>200 && (S.hud || elStats.drawer.classList.contains('open'))){
+      stats.lastPush=now;
+      elStats.fps.textContent=stats.fps;
+      elStats.tris.textContent=(stats.tris/1000).toFixed(1)+'k';
+      elStats.draws.textContent=stats.draws;
+      elStats.api.textContent=apiLabel;
+      elStats.mood.textContent=state.mood;
+      elStats.crew.textContent=crewStats().checked+'/'+state.members.length;
+    }
+    raf=requestAnimationFrame(frame);
+  }
+
+  function localPt(e){ const r=canvas.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top, r.width, r.height]; }
+  canvas.addEventListener('pointerdown',e=>{
+    cam.drag=true; cam.px=e.clientX; cam.py=e.clientY; cam.moved=0;
+    canvas.setPointerCapture?.(e.pointerId);
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(!cam.drag) return;
+    const dx=e.clientX-cam.px, dy=e.clientY-cam.py;
+    cam.px=e.clientX; cam.py=e.clientY;
+    cam.moved+=Math.abs(dx)+Math.abs(dy);
+    cam.tyaw+=dx*.006;
+    cam.tpitch=clamp(cam.tpitch-dy*.005,-.55,1.05);
+  });
+  canvas.addEventListener('pointerup',e=>{
+    const wasDrag=cam.moved>7; cam.drag=false;
+    if(wasDrag) return;
+    const [lx,ly,w,h]=localPt(e);
+    let best=null, bd=1e9;
+    crewColors.forEach((c,i)=>{
+      const ang=(i/crewColors.length)*Math.PI*2 + scene.time*.06;
+      const p=[Math.cos(ang)*2.75, -.35, Math.sin(ang)*2.75];
+      const [sx,sy]=project(p, w, h);
+      const d=Math.hypot(sx-lx, sy-ly);
+      if(d<bd){ bd=d; best=c.id; }
+    });
+    if(best && bd<68) App.selectMember(best);
+    else if(bd>=68) App.selectMember(null);
+  });
+  canvas.addEventListener('wheel',e=>{
+    e.preventDefault();
+    cam.tdist=clamp(cam.tdist+e.deltaY*.0035,3.2,13);
+  },{passive:false});
+  canvas.addEventListener('dblclick',()=>{ cam.tdist=6.4; cam.tpitch=.18; });
+
+  function setCrewColors(list){ crewColors.length=0; list.forEach(o=>crewColors.push(o)); }
+  function setParticles(n){ n=Math.max(0,n|0); if(n!==pCount) buildParticles(n); }
+
+  return {gl,setMoodColors,start:()=>{setMoodColors(MOOD(state.mood)); raf=requestAnimationFrame(frame);},
+          setCrewColors,setParticles,stats,scene,cam};
+})();
+
+/* ============================================================
+   TEXMEX-MD BACKEND BRIDGE (Pairing, Status Push, Commands, Logs)
+   ============================================================ */
+const BotBridge=(()=>{
+  let allCommands=[];
+  let settingsSynced=false;
+  let liveLinks=null;
+  let activeBioText='';
+
+  function dashHeaders(){
+    const h={'Content-Type':'application/json'};
+    const k=($('#dashKeyInput')?.value||'').trim();
+    if(k) h['x-dashboard-key']=k;
+    return h;
+  }
+
+  function fmtUp(sec){
+    const s=Math.max(0,Math.floor(sec||0));
+    const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), r=s%60;
+    return h? `${h}h ${m}m` : m? `${m}m ${r}s` : `${r}s`;
+  }
+
+  async function pollStatus(){
+    try{
+      const r=await fetch('./api/status');
+      const d=await r.json();
+      if(!d.ok) return;
+      if(d.locked) $('#dashKeyInput').style.display='block';
+
+      const st=d.state||{};
+      const cfg=d.settings||{};
+      const lnk=d.links||{};
+      const webOrigin = (lnk.websiteUrl && !lnk.websiteUrl.includes('localhost')) ? lnk.websiteUrl : window.location.origin;
+      liveLinks={
+        port: lnk.port || 3000,
+        websiteUrl: webOrigin,
+        localBind: lnk.localBind || `http://0.0.0.0:${lnk.port||3000}`,
+        healthUrl: `${webOrigin}/health`,
+        statusApiUrl: `${webOrigin}/api/status`,
+        pluginsApiUrl: `${webOrigin}/api/plugins`,
+        repoWebUrl: lnk.repoWebUrl || 'https://github.com/texmexlite-67/TEMEX-MD'
+      };
+      activeBioText = cfg.customBio || lnk.defaultBio || `⚡ 𝗧𝗘𝗫𝗠𝗘𝗫 ⟁ 𝗧𝗘𝗫𝗠𝗘𝗫-𝗠𝗗 | 🌐 ${webOrigin} | 🔌 𝗣𝗼𝗿𝘁:${liveLinks.port}`;
+
+      const bioGrid=$('#bhBioLinks');
+      if(bioGrid){
+        bioGrid.innerHTML=`
+          <a class="btn primary" href="${liveLinks.websiteUrl}" target="_blank" rel="noopener">🌍 All-Devices Web (${liveLinks.port})</a>
+          <button class="btn" type="button" id="copyGlobalLinkBtn">📋 Copy Shareable Link</button>
+          <a class="btn" href="${liveLinks.healthUrl}" target="_blank" rel="noopener">💓 Port /health</a>
+          <a class="btn" href="${liveLinks.statusApiUrl}" target="_blank" rel="noopener">📊 Port /api/status</a>
+          <a class="btn" href="${liveLinks.pluginsApiUrl}" target="_blank" rel="noopener">🧩 Port /api/plugins</a>
+          <a class="btn" href="${liveLinks.repoWebUrl}" target="_blank" rel="noopener">🐙 GitHub Repo</a>
+        `;
+        const copyBtn=$('#copyGlobalLinkBtn');
+        if(copyBtn){
+          copyBtn.onclick=async()=>{
+            try{
+              await navigator.clipboard.writeText(liveLinks.websiteUrl);
+              toast('Copied shareable public Web App URL!');
+            }catch{
+              prompt('Copy your public All-Devices Web App URL:', liveLinks.websiteUrl);
+            }
+          };
+        }
+      }
+      if($('#bioInput') && !$('#bioInput').dataset.dirty){
+        $('#bioInput').value=activeBioText;
+      }
+
+      const connected=st.status==='connected';
+      const pill=$('#waPill');
+      pill.classList.toggle('warn',!connected);
+      $('#waText').textContent=connected && st.user ? `+${st.user.number}` : (st.status||'offline').replace(/_/g,' ');
+      $('#waSub').textContent=connected ? 'wa online' : 'tap to pair';
+
+      $('#stWa').textContent=connected && st.user ? `+${st.user.number}` : st.status;
+      $('#stUp').textContent=fmtUp(st.uptimeSeconds);
+      $('#stCmds').textContent=st.totalCommands||'--';
+      $('#stRam').textContent=`${st.memoryMb||0} MB`;
+      $('#cmdTotalBadge').textContent=st.totalCommands||'--';
+
+      $('#bhMeta').textContent =
+        `Developed by TEXMEX with ❤️ · Host: ${st.platform||'Cloud'} · Mode: ${(cfg.mode||'public').toUpperCase()} [${cfg.prefix||'.'}] · Uptime: ${fmtUp(st.uptimeSeconds)}`;
+
+      const qrWrap=$('#qrWrap');
+      if(connected && st.user){
+        qrWrap.innerHTML=`<div>
+          <div style="font-size:28px;margin-bottom:6px">✅</div>
+          <b style="color:var(--accent);font-size:14px">+${st.user.number} (${st.user.name||'Linked'})</b>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:4px">TEXMEX-MD Multi-Device Socket Active</div>
+        </div>`;
+      } else if(st.qrDataUrl){
+        qrWrap.innerHTML=`<div>
+          <img src="${st.qrDataUrl}" alt="WhatsApp QR" />
+          <div style="font-size:11px;color:var(--muted);margin-top:6px">Scan in WhatsApp → Linked Devices</div>
+        </div>`;
+      } else {
+        qrWrap.innerHTML=`<div style="color:var(--muted);font-size:12px">Status: <b>${st.status||'connecting'}</b><br/>Use 8-digit phone pairing on the left or wait for QR.</div>`;
+      }
+
+      if(!settingsSynced && cfg.prefix){
+        $('#cfgMode').value=cfg.mode||'public';
+        $('#cfgPrefix').value=cfg.prefix||'.';
+        $('#cfgCd').value=cfg.cooldownSeconds||0;
+        $('#cfgChatbot').value=cfg.chatbotMode||'off';
+        $('#cfgAntiCall').value=cfg.antiCall||'reject';
+        $('#cfgAntiDelete').value=cfg.antiDelete||'dm';
+        $('#cfgAutoStatus').checked=Boolean(cfg.autoStatusView);
+        settingsSynced=true;
+      }
+    }catch(e){}
+  }
+
+  async function loadCommands(){
+    try{
+      const r=await fetch('./api/plugins');
+      const d=await r.json();
+      if(d.ok){
+        allCommands=d.commands||[];
+        renderCommands();
+      }
+    }catch(e){}
+  }
+
+  function renderCommands(){
+    const q=($('#cmdSearch')?.value||'').toLowerCase().trim();
+    const cat=$('#cmdCat')?.value||'all';
+    const grid=$('#cmdGrid');
+    if(!grid) return;
+    const filtered=allCommands.filter(c=>{
+      const okCat=cat==='all'||c.category===cat;
+      const okQ=!q || c.name.includes(q) || (c.desc||'').toLowerCase().includes(q) || (c.aliases||[]).some(a=>a.includes(q));
+      return okCat && okQ;
+    });
+    grid.innerHTML=filtered.map(c=>`
+      <div class="cmd-card" data-copycmd=".${c.name}">
+        <div class="top"><b>.${c.name}</b><em>${c.category}</em></div>
+        <small>${c.desc||''}</small>
+      </div>
+    `).join('') || `<div style="color:var(--muted);font-size:12px">No matching commands.</div>`;
+  }
+
+  async function refreshLogs(){
+    try{
+      const r=await fetch('./api/logs',{headers:dashHeaders()});
+      const d=await r.json();
+      if(!d.ok) return;
+      const box=$('#logBox');
+      box.innerHTML=(d.logs||[]).slice().reverse().map(l=>
+        `<div><span style="color:var(--muted)">[${(l.time||'').slice(11,19)}]</span> <b style="color:var(--accent)">(${l.tag})</b> ${l.message}</div>`
+      ).join('') || 'No logs yet.';
+    }catch(e){}
+  }
+
+  async function pushToStatus(payload){
+    try{
+      toast('pushing to whatsapp status...');
+      const r=await fetch('./api/status/push',{
+        method:'POST',
+        headers:dashHeaders(),
+        body:JSON.stringify(payload)
+      });
+      const d=await r.json();
+      if(!d.ok){ toast(d.error||'status push failed'); return null; }
+      toast(`pushed to status (${d.recipientsCount} contacts)`);
+      Audio_.duck();
+      return d;
+    }catch(e){
+      toast('network error pushing status');
+      return null;
+    }
+  }
+
+  async function askAi(prompt){
+    const r=await fetch('./api/ai',{
+      method:'POST',
+      headers:dashHeaders(),
+      body:JSON.stringify({prompt})
+    });
+    return r.json();
+  }
+
+  function wire(){
+    // Bot Hub open/close & tabs
+    const toggleHub=force=>{
+      const hub=$('#botHub');
+      const open=force!==undefined? force : !hub.classList.contains('open');
+      hub.classList.toggle('open',open);
+      $('#botHubBtn').classList.toggle('on',open);
+      if(open){ pollStatus(); refreshLogs(); if(!allCommands.length) loadCommands(); }
+    };
+    $('#waPill').onclick=()=>toggleHub(true);
+    $('#closeBotHub').onclick=()=>toggleHub(false);
+
+    $$('.bh-tab').forEach(b=>b.onclick=()=>{
+      $$('.bh-tab').forEach(x=>x.classList.toggle('active',x===b));
+      $$('.bh-pane').forEach(p=>p.classList.toggle('active',p.id==='bh-'+b.dataset.bhtab));
+      if(b.dataset.bhtab==='cmds' && !allCommands.length) loadCommands();
+      if(b.dataset.bhtab==='settings') refreshLogs();
+    });
+
+    // Pairing
+    $('#getPairBtn').onclick=async()=>{
+      const phone=$('#phoneInput').value.trim();
+      if(!phone){ toast('enter whatsapp number first'); return; }
+      toast('requesting pairing code...');
+      const r=await fetch('./api/pair',{
+        method:'POST',headers:dashHeaders(),
+        body:JSON.stringify({phone,useCustom:$('#customPairCheck').checked})
+      });
+      const d=await r.json();
+      if(!d.ok){ toast(d.error||'pairing failed'); return; }
+      $('#pairDigits').textContent=d.code;
+      $('#pairCodeBox').style.display='block';
+      toast(`code ready: ${d.code}`);
+    };
+
+    $('#restartBotBtn').onclick=async()=>{
+      await fetch('./api/restart',{method:'POST',headers:dashHeaders()});
+      toast('restarting whatsapp socket...');
+    };
+    $('#resetSessionBtn').onclick=async()=>{
+      if(!confirm('Clear current WhatsApp session and link a new number?')) return;
+      await fetch('./api/session/reset',{method:'POST',headers:dashHeaders()});
+      toast('session cleared — ready to pair');
+      setTimeout(pollStatus,1200);
+    };
+    $('#applyBotDpBtn').onclick=async()=>{
+      toast('applying anime ai dp...');
+      const r=await fetch('./api/botdp/apply',{method:'POST',headers:dashHeaders()});
+      const d=await r.json();
+      toast(d.ok ? 'anime ai dp applied!' : (d.error||'failed'));
+    };
+
+    // Bio & Port Links Sync
+    $('#bioInput').oninput=()=>{ $('#bioInput').dataset.dirty='1'; };
+    $('#syncBioBtn').onclick=async()=>{
+      const bio=($('#bioInput').value||'').trim();
+      toast('syncing bio to whatsapp...');
+      const r=await fetch('./api/bio/apply',{
+        method:'POST',headers:dashHeaders(),body:JSON.stringify({bio})
+      });
+      const d=await r.json();
+      if(d.ok){
+        $('#bioInput').value=d.bio;
+        delete $('#bioInput').dataset.dirty;
+        toast('whatsapp bio updated!');
+      } else toast(d.error||'bio sync failed');
+    };
+    $('#resetBioBtn').onclick=async()=>{
+      toast('restoring default website + port bio...');
+      const r=await fetch('./api/bio/apply',{
+        method:'POST',headers:dashHeaders(),body:JSON.stringify({bio:'default'})
+      });
+      const d=await r.json();
+      if(d.ok){
+        $('#bioInput').value=d.bio;
+        delete $('#bioInput').dataset.dirty;
+        toast('website + port links synced to bio!');
+      } else toast(d.error||'bio sync failed');
+    };
+
+    // Session Export / Import
+    $('#exportSessionBtn').onclick=async()=>{
+      const r=await fetch('./api/session',{headers:dashHeaders()});
+      const d=await r.json();
+      if(!d.ok){ toast(d.error||'no session yet'); return; }
+      $('#sessionText').value=d.sessionId;
+      toast('session_id exported');
+    };
+    $('#copySessionBtn').onclick=()=>{
+      const v=$('#sessionText').value.trim();
+      if(!v){ toast('export session first'); return; }
+      copyText(v,()=>toast('session_id copied'),()=>toast('copy blocked'));
+    };
+    $('#importSessionBtn').onclick=async()=>{
+      const sessionId=$('#sessionText').value.trim();
+      if(!sessionId){ toast('paste texmex-md~ session first'); return; }
+      const r=await fetch('./api/session/import',{
+        method:'POST',headers:dashHeaders(),body:JSON.stringify({sessionId})
+      });
+      const d=await r.json();
+      toast(d.ok ? 'session imported!' : (d.error||'invalid session'));
+      setTimeout(pollStatus,1500);
+    };
+
+    // Push to Status Studio
+    $('#pushCustomStatusBtn').onclick=async()=>{
+      const text=$('#statusCustomText').value.trim();
+      if(!text){ toast('enter status text first'); return; }
+      const d=await pushToStatus({text});
+      if(d){ $('#statusCustomText').value=''; }
+    };
+    $('#pushCheckinStatusBtn').onclick=async()=>{
+      const txt=App.buildCheckinText();
+      const d=await pushToStatus({text:txt});
+      if(d){
+        const pv=$('#statusPushPreview');
+        pv.style.display='block'; pv.textContent=d.preview;
+      }
+    };
+    $$('[data-pushcat]').forEach(b=>b.onclick=async()=>{
+      const category=b.dataset.pushcat;
+      const topic=$('#statusTopicInput').value.trim();
+      const d=await pushToStatus({category,topic});
+      if(d){
+        const pv=$('#statusPushPreview');
+        pv.style.display='block'; pv.textContent=d.preview;
+      }
+    });
+
+    // Specialized Bible-Extracted Prayer Studio
+    $('#genPrayerBtn').onclick=async()=>{
+      const type=$('#prayerTypeSelect').value;
+      const note=$('#prayerNoteInput').value.trim();
+      const out=$('#prayerStudioOut');
+      out.style.display='block';
+      out.textContent='⏳ Extracting Scripture from OpenBible / BibleGateway & composing prayer...';
+      const r=await fetch('./api/prayer',{
+        method:'POST',headers:dashHeaders(),body:JSON.stringify({type,note})
+      });
+      const d=await r.json();
+      out.textContent = d.ok ? d.prayer : (`⚠️ ${d.error||'Failed to generate prayer'}`);
+      if(d.ok) toast(`${type} prayer ready`);
+    };
+    $('#pushSpecPrayerBtn').onclick=async()=>{
+      const type=$('#prayerTypeSelect').value;
+      const note=$('#prayerNoteInput').value.trim();
+      const d=await pushToStatus({category:'prayer',topic:`${type} ${note}`.trim()});
+      if(d){
+        const out=$('#prayerStudioOut');
+        out.style.display='block';
+        out.textContent=d.preview;
+      }
+    };
+
+    // AI Neural Voice & Audio Status Generator
+    const runTtsAction=async(pushFlag)=>{
+      const category=$('#ttsCatSelect').value;
+      const voice=$('#ttsVoiceSelect').value;
+      const raw=$('#ttsInput').value.trim();
+      const body = category ? {category,topic:raw,voice,pushToStatus:pushFlag} : {text:raw,voice,pushToStatus:pushFlag};
+      toast(pushFlag ? 'synthesizing ai voice & pushing to status...' : 'synthesizing ai neural voice...');
+      const r=await fetch('./api/tts',{method:'POST',headers:dashHeaders(),body:JSON.stringify(body)});
+      const d=await r.json();
+      if(!d.ok){ toast(d.error||'tts failed'); return; }
+      const wrap=$('#ttsPlayerWrap'), aud=$('#ttsAudioEl');
+      wrap.style.display='block';
+      aud.src=d.audioDataUrl;
+      aud.play().catch(()=>{});
+      $('#ttsMetaLine').textContent = `${d.voiceLabel} · ${d.engine}${d.pushedToStatus ? ` · PUSHED TO STATUS (${d.recipientsCount} contacts)` : ''}`;
+      $('#ttsScriptPreview').textContent = d.script;
+      toast(d.pushedToStatus ? 'ai voice pushed to status & playing!' : 'ai voice ready — playing!');
+    };
+    $('#genTtsBtn').onclick=()=>runTtsAction(false);
+    $('#pushTtsStatusBtn').onclick=()=>runTtsAction(true);
+
+    // Commands filter & click-to-copy
+    $('#cmdSearch').oninput=renderCommands;
+    $('#cmdCat').onchange=renderCommands;
+    $('#cmdGrid').addEventListener('click',e=>{
+      const card=e.target.closest('[data-copycmd]');
+      if(!card) return;
+      copyText(card.dataset.copycmd,()=>toast(`copied ${card.dataset.copycmd}`),()=>{});
+    });
+
+    // Settings save
+    $('#saveCfgBtn').onclick=async()=>{
+      const body={
+        mode:$('#cfgMode').value,
+        prefix:$('#cfgPrefix').value.trim()||'.',
+        cooldownSeconds:Number($('#cfgCd').value||0),
+        chatbotMode:$('#cfgChatbot').value,
+        antiCall:$('#cfgAntiCall').value,
+        antiDelete:$('#cfgAntiDelete').value,
+        autoStatusView:$('#cfgAutoStatus').checked
+      };
+      const r=await fetch('./api/settings',{method:'POST',headers:dashHeaders(),body:JSON.stringify(body)});
+      const d=await r.json();
+      toast(d.ok ? 'bot settings saved!' : (d.error||'save failed'));
+      pollStatus();
+    };
+    $('#refreshLogsBtn').onclick=refreshLogs;
+
+    pollStatus();
+    loadCommands();
+    setInterval(pollStatus,3500);
+  }
+
+  return {wire,pushToStatus,askAi,getLinks:()=>liveLinks,getBio:()=>activeBioText,syncDefaultBio:async()=>{
+    const r=await fetch('./api/bio/apply',{method:'POST',headers:dashHeaders(),body:JSON.stringify({bio:'default'})});
+    return r.json();
+  },toggleHub:f=>{
+    const hub=$('#botHub');
+    const open=f!==undefined? f : !hub.classList.contains('open');
+    hub.classList.toggle('open',open);
+    $('#botHubBtn').classList.toggle('on',open);
+    if(open) pollStatus();
+  }};
+})();
+
+/* ============================================================
+   APP — state ↔ 3D ↔ audio ↔ oracle ↔ bot hub
+   ============================================================ */
+const App=(()=>{
+  const memberMood=id=>state.checkins[id];
+  function effectiveMood(){
+    if(state.selected){
+      const m=memberMood(state.selected);
+      if(m) return m;
+    }
+    return state.mood;
+  }
+  function memberEnergy(id){
+    const m=memberMood(id); return m? MOOD(m).energy : .22;
+  }
+  function accentOf(id){
+    const m=memberMood(id); return m? MOOD(m).accent : '#5d6f70';
+  }
+
+  function renderCrew(){
+    const list=$('#crewList'); list.innerHTML='';
+    state.members.forEach(m=>{
+      const mm=memberMood(m.id);
+      const li=document.createElement('li');
+      li.className=state.selected===m.id?'sel':'';
+      li.dataset.id=m.id;
+      li.innerHTML=`
+        <div class="orbdot" style="color:${accentOf(m.id)};background:${accentOf(m.id)}22;box-shadow:0 0 16px -6px ${accentOf(m.id)}">${m.emoji}</div>
+        <div class="who"><b>${m.name}${m.id===state.me?' <span class="mono" style="color:var(--accent)">· you</span>':''}</b>
+          <small>${mm? MOOD(mm).emoji+' '+MOOD(mm).name : 'no check-in'}</small></div>
+        <div class="energy"><i style="width:${Math.round(memberEnergy(m.id)*100)}%;background:${accentOf(m.id)}"></i></div>`;
+      li.onclick=()=>selectMember(m.id);
+      li.ondblclick=e=>{ e.stopPropagation(); memberCard(m.id); };
+      list.appendChild(li);
+    });
+    if(R) R.setCrewColors(state.members.map(m=>({id:m.id,rgb:hexToRgb(accentOf(m.id))})));
+    $('#stCrew').textContent=crewStats().checked+'/'+state.members.length;
+  }
+  function renderMoods(){
+    const dock=$('#moodDock'); dock.innerHTML='';
+    MOODS.forEach(m=>{
+      const b=document.createElement('button');
+      b.className='mood'+(state.mood===m.id?' on':'');
+      b.innerHTML=`<span>${m.emoji}</span><b>${m.name}</b>`;
+      b.title=m.tag;
+      b.onclick=()=>setMood(m.id);
+      dock.appendChild(b);
+    });
+  }
+  function renderPill(){
+    const m=MOOD(effectiveMood());
+    $('#crewMood').textContent=m.name;
+    document.documentElement.style.setProperty('--accent',m.accent);
+    document.documentElement.style.setProperty('--accent-dim',m.accent+'2b');
+    R && R.setMoodColors(m);
+    $('#stMood').textContent=m.id;
+  }
+  function renderClock(){
+    const d=new Date();
+    $('#clock').querySelector('b').textContent=
+      d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    const h=d.getHours();
+    $('#greet').textContent = h<5?'still up?':h<12?'good morning':h<17?'afternoon':h<21?'evening':'late night';
+  }
+
+  function selectMember(id){
+    state.selected = state.selected===id? null : id;
+    renderCrew(); renderPill();
+    if(state.selected){
+      const m=state.members.find(x=>x.id===state.selected);
+      const mm=memberMood(m.id);
+      toast(`${m.name} — ${mm? MOOD(mm).name.toLowerCase():'no check-in'} · scene retinted`);
+      Oracle.setSeed(Date.now()+m.name.length);
+    } else toast('group view restored');
+  }
+  function setMood(id){
+    state.mood=id;
+    state.checkins[state.me]=id;
+    state.history.push({t:Date.now(),mood:id});
+    if(state.history.length>240) state.history=state.history.slice(-240);
+    if(state.selected && state.selected===state.me) state.selected=null;
+    save();
+    renderMoods(); renderCrew(); renderPill();
+    Audio_.retune(id);
+    if(state.settings.sound) Audio_.blip();
+    const m=MOOD(id);
+    toast(`checked in — ${m.emoji} ${m.name.toLowerCase()} · ${m.tag}`);
+    if($('#oraclePanel').classList.contains('hidden')===false && currentTab!=='ai'){
+      Oracle.setSeed(Date.now()); renderOracle(currentTab);
+    }
+  }
+  function toggleSound(){
+    state.settings.sound=Audio_.toggle()||false;
+    $('#soundBtn').classList.toggle('on',state.settings.sound);
+    $('#soundBtn').textContent=state.settings.sound?'♪ Sound on':'♪ Sound';
+    if(state.settings.sound) Audio_.retune(state.mood);
+    save();
+    toast(state.settings.sound?'ambient bed live':'muted');
+  }
+
+  let currentTab='vibe';
+  let lastAiAnswer='';
+  function renderOracle(tab){
+    currentTab=tab;
+    $$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+    const body=$('#oracleBody');
+    const st=crewStats();
+    if(tab==='vibe'){
+      const v=Oracle.vibeLine();
+      body.innerHTML=`<span class="k">reading the room</span>
+        <p>${v.lines[0]}</p>
+        <p style="color:#8ea6a4;font-size:11.5px">${v.lines.slice(1).join(' ')}</p>
+        <div class="spark">${Oracle.energyCurve().map((e,i)=>
+          `<i style="height:${Math.max(6,Math.round(e*26))}px" class="${i===0?'now':''}"></i>`).join('')}</div>
+        <span class="mono">next 8h vibe forecast</span>
+        <p class="mono" style="margin:9px 0 0;line-height:1.6">${renderStates()}</p>
+        <button class="gen" data-gen="vibe">↻ re-read the room</button>
+        <button class="gen" data-push-ci="1" style="margin-top:6px">📡 push check-in to whatsapp status</button>
+        <button class="gen" data-copy-ci="1" style="margin-top:6px;background:transparent;border-color:var(--stroke);color:#cfe0dd">⧉ copy whatsapp check-in</button>`;
+    }
+    if(tab==='plan'){
+      const p=Oracle.plan();
+      body.innerHTML=`<span class="k">tonight's programme · ${MOOD(st.dominant).name.toLowerCase()}</span>
+        ${p.map(s=>`<div class="step" data-plan="${s.title}">
+          <span class="t">0${s.n}</span><div><b>${s.title}</b><small>${s.desc}</small></div></div>`).join('')}
+        <button class="gen" data-gen="plan">↻ shuffle the plan</button>`;
+    }
+    if(tab==='talk'){
+      const q=Oracle.talk();
+      body.innerHTML=`<span class="k">open with this</span>
+        <p style="font-size:14px;line-height:1.55">“${q}”</p>
+        <p style="color:#8ea6a4;font-size:11.5px">paste it into the chat or push to status. the room will do the rest.</p>
+        <button class="gen" data-gen="talk">↻ another question</button>
+        <button class="gen" data-copy="1" style="margin-top:6px;background:transparent;border-color:var(--stroke);color:#cfe0dd">⧉ copy to clipboard</button>`;
+      body.dataset.q=q;
+    }
+    if(tab==='ai'){
+      body.innerHTML=`<span class="k">texmex-md conversational ai</span>
+        <textarea id="oracleAiIn" class="in" placeholder="Ask TEXMEX-MD AI anything (advice, psychology, scripture, code, ideas)..." style="min-height:66px;margin-bottom:6px"></textarea>
+        <button class="gen" id="oracleAiSend">⚡ ask texmex ai</button>
+        <div id="oracleAiOut" style="margin-top:10px;font-size:12px;line-height:1.55;white-space:pre-wrap;color:#e4f5f2">${lastAiAnswer||'Ready. Responses remember your conversation context.'}</div>`;
+      const btn=$('#oracleAiSend'), inp=$('#oracleAiIn'), out=$('#oracleAiOut');
+      btn.onclick=async()=>{
+        const q=inp.value.trim();
+        if(!q){ toast('ask something first'); return; }
+        out.textContent='⏳ Thinking...';
+        const d=await BotBridge.askAi(q);
+        lastAiAnswer = d.ok ? d.reply : (`⚠️ ${d.error||'AI unavailable'}`);
+        out.textContent=lastAiAnswer;
+        Audio_.duck();
+      };
+    }
+  }
+
+  function renderStates(){
+    const st=crewStats();
+    const parts=[`${st.checked}/${st.of} checked in`];
+    if(st.spread>1) parts.push(`${st.spread} different moods`);
+    parts.push(`dominant ${MOOD(st.dominant).name.toLowerCase()}`);
+    return parts.join(' · ');
+  }
+
+  function buildCheckinText(){
+    const st=crewStats(), v=Oracle.vibeLine(), m=MOOD(st.dominant);
+    const moods=state.members.map(x=>{
+      const mm=memberMood(x.id);
+      return `${x.emoji} ${x.name}: ${mm? MOOD(mm).name : '—'}`;
+    }).join('\n');
+    return `⟁ *${state.group}* — ${new Date().toLocaleDateString()}\n`+
+      `Vibe: ${m.emoji} ${m.name} (${m.tag})\n`+
+      `${st.checked}/${st.of} checked in today\n\n${moods}\n\n`+
+      `_${v.lines[0]}_\n`+
+      `Plan: ${Oracle.plan()[0].title} — ${Oracle.plan()[0].desc}\n`+
+      `— TEXMEX-MD // 3D`;
+  }
+
+  function copyCheckin(){
+    const txt=buildCheckinText();
+    copyText(txt,()=>{
+      toast('check-in copied — paste in whatsapp');
+      Audio_.duck();
+    },()=>{
+      modal(`<button class="mini x" data-close>×</button>
+        <div class="top"><div class="big">⧉</div><div><h2>Copy check-in</h2>
+        <div class="sub">select and copy</div></div></div>
+        <textarea readonly class="in" style="height:170px">${txt}</textarea>
+        <div class="actions" style="margin-top:12px"><button class="btn on" data-close>done</button></div>`,
+        c=>{ const ta=c.querySelector('textarea'); ta.focus(); ta.select(); });
+    });
+  }
+
+  function modal(html, mount){
+    const wrap=$('#modal'), card=$('#modalCard');
+    card.innerHTML=html;
+    wrap.classList.add('open');
+    mount && mount(card);
+  }
+  function closeModal(){ $('#modal').classList.remove('open'); }
+
+  function askRename(){
+    modal(`<button class="mini x" data-close>×</button>
+      <div class="top"><div class="big">✎</div><div><h2>Name the 3D Baze</h2>
+      <div class="sub">shows in header & status check-ins</div></div></div>
+      <input id="renameIn" value="${state.group}" class="in" maxlength="28" />
+      <div class="actions" style="margin-top:14px">
+        <button class="btn" data-close>cancel</button>
+        <button class="btn on" id="saveName">save</button></div>`,
+      c=>{
+        const i=c.querySelector('#renameIn'); i.focus(); i.select();
+        i.onkeydown=e=>{ if(e.key==='Enter') c.querySelector('#saveName').click(); };
+        c.querySelector('#saveName').onclick=()=>{
+          state.group=i.value.trim()||'TEXMEX // BAZE';
+          $('#groupName').textContent=state.group; save(); closeModal();
+          toast('baze renamed');
+        };
+      });
+  }
+  function askAddMember(){
+    const emojis=['⚡','😎','🌊','🎮','🍜','🕺','💃','🧊','🔥','🌙','✨','🎧','🐉','🍿','🛸'];
+    modal(`<button class="mini x" data-close>×</button>
+      <div class="top"><div class="big">＋</div><div><h2>Add to the crew</h2>
+      <div class="sub">one 3d orb per member</div></div></div>
+      <input id="mName" placeholder="name" class="in" style="margin-bottom:10px" maxlength="16" />
+      <div id="emojiRow" style="display:flex;flex-wrap:wrap;gap:6px">
+        ${emojis.map((e,i)=>`<button class="mini" data-emoji="${e}" style="width:32px;height:32px;font-size:15px;${i===0?'border-color:var(--accent)':''}">${e}</button>`).join('')}
+      </div>
+      <div class="actions" style="margin-top:14px">
+        <button class="btn" data-close>cancel</button>
+        <button class="btn on" id="saveMember">add</button></div>`,
+      c=>{
+        let chosen=emojis[0];
+        c.querySelector('#mName').focus();
+        c.querySelectorAll('[data-emoji]').forEach(b=>b.onclick=()=>{
+          chosen=b.dataset.emoji;
+          c.querySelectorAll('[data-emoji]').forEach(x=>x.style.borderColor='var(--stroke)');
+          b.style.borderColor='var(--accent)';
+        });
+        c.querySelector('#saveMember').onclick=()=>{
+          const n=c.querySelector('#mName').value.trim();
+          if(!n){ toast('give them a name'); return; }
+          state.members.push({id:'m'+Date.now(),name:n,emoji:chosen});
+          save(); renderCrew(); closeModal(); toast(`${n} joined the baze`);
+        };
+      });
+  }
+  function openBioModal(){
+    const lnk=BotBridge.getLinks()||{
+      port:3000,
+      websiteUrl:window.location.origin,
+      localBind:'http://0.0.0.0:3000',
+      healthUrl:`${window.location.origin}/health`,
+      statusApiUrl:`${window.location.origin}/api/status`,
+      pluginsApiUrl:`${window.location.origin}/api/plugins`,
+      repoWebUrl:'https://github.com/texmexlite-67/TEMEX-MD'
+    };
+    const bio=BotBridge.getBio()||`⚡ TEXMEX-MD ❤️ 🌐 ${lnk.websiteUrl} | 🔌 Port:${lnk.port}`;
+    modal(`<button class="mini x" data-close>×</button>
+      <div class="top">
+        <img src="./bot-dp.jpg" alt="DP" style="width:48px;height:48px;border-radius:14px;border:1.5px solid var(--accent);object-fit:cover" onerror="this.style.display='none'" />
+        <div><h2>TEXMEX-MD // BIO & PORTS</h2><div class="sub">Developed by TEXMEX with ❤️</div></div>
+      </div>
+      <p style="font-family:var(--mono);font-size:11px;padding:9px 10px;border-radius:10px;background:rgba(0,0,0,.38);border:1px solid var(--stroke);word-break:break-all">${bio}</p>
+      <div style="display:grid;gap:6px;margin-bottom:12px">
+        <a class="btn" href="${lnk.websiteUrl}" target="_blank" rel="noopener" style="justify-content:space-between"><span>🌐 3D Website</span><span style="opacity:.7">Port ${lnk.port} ↗</span></a>
+        <a class="btn" href="${lnk.healthUrl}" target="_blank" rel="noopener" style="justify-content:space-between"><span>💓 Health Port</span><span style="opacity:.7">/health ↗</span></a>
+        <a class="btn" href="${lnk.statusApiUrl}" target="_blank" rel="noopener" style="justify-content:space-between"><span>📊 Status Port API</span><span style="opacity:.7">/api/status ↗</span></a>
+        <a class="btn" href="${lnk.pluginsApiUrl}" target="_blank" rel="noopener" style="justify-content:space-between"><span>🧩 Plugins Port API</span><span style="opacity:.7">/api/plugins ↗</span></a>
+        <a class="btn" href="${lnk.repoWebUrl}" target="_blank" rel="noopener" style="justify-content:space-between"><span>🐙 GitHub Repository</span><span style="opacity:.7">TEMEX-MD ↗</span></a>
+      </div>
+      <div class="actions">
+        <button class="btn" id="copyBioModalBtn">📋 Copy Bio</button>
+        <button class="btn primary" id="syncBioModalBtn">📲 Sync to WA Bio</button>
+      </div>`,
+      c=>{
+        c.querySelector('#copyBioModalBtn').onclick=()=>copyText(bio,()=>toast('bio copied'),()=>{});
+        c.querySelector('#syncBioModalBtn').onclick=async()=>{
+          toast('syncing website & port links to whatsapp bio...');
+          const d=await BotBridge.syncDefaultBio();
+          toast(d.ok ? 'whatsapp bio synced!' : (d.error||'sync failed'));
+        };
+      });
+  }
+
+  function memberCard(id){
+    const m=state.members.find(x=>x.id===id); if(!m) return;
+    const mm=memberMood(id);
+    const lnk=BotBridge.getLinks();
+    const isOwner = m.id==='m1' || m.id===state.me;
+    const bioLinksHtml = (isOwner && lnk) ? `
+      <div style="display:grid;gap:5px;margin:0 0 12px">
+        <a class="btn" href="${lnk.websiteUrl}" target="_blank" rel="noopener" style="justify-content:space-between"><span>🌐 Website</span><span style="opacity:.7">:${lnk.port} ↗</span></a>
+        <a class="btn" href="${lnk.healthUrl}" target="_blank" rel="noopener" style="justify-content:space-between"><span>🔌 Health & API Port</span><span style="opacity:.7">/health ↗</span></a>
+        <a class="btn" href="${lnk.repoWebUrl}" target="_blank" rel="noopener" style="justify-content:space-between"><span>🐙 GitHub Repo</span><span style="opacity:.7">TEMEX-MD ↗</span></a>
+      </div>` : '';
+    modal(`<button class="mini x" data-close>×</button>
+      <div class="top"><div class="big">${m.emoji}</div><div><h2>${m.name}</h2>
+      <div class="sub">${mm? MOOD(mm).name+' · '+MOOD(mm).tag : 'no check-in today'}</div></div></div>
+      <p>${mm? MOOD(mm).text : 'has not told the room how they are feeling yet.'}</p>
+      ${bioLinksHtml}
+      <div class="actions">
+        <button class="btn" data-close>close</button>
+        <button class="btn on" id="checkinAs">check in as ${m.name}</button>
+      </div>
+      ${state.members.length>1?`<button class="gen" id="removeMember" style="margin-top:8px;background:transparent;border-color:rgba(255,120,120,.5);color:#ff9b9b">remove from crew</button>`:''}`,
+      c=>{
+        c.querySelector('#checkinAs').onclick=()=>{
+          state.me=m.id; save(); closeModal(); renderCrew();
+          toast(`now checking in as ${m.name}`);
+        };
+        const r=c.querySelector('#removeMember');
+        if(r) r.onclick=()=>{
+          state.members=state.members.filter(x=>x.id!==m.id);
+          delete state.checkins[m.id];
+          if(state.me===m.id) state.me=state.members[0].id;
+          if(state.selected===m.id) state.selected=null;
+          save(); renderCrew(); renderPill(); closeModal();
+          toast(`${m.name} left the baze`);
+        };
+      });
+  }
+
+  const PRESETS={
+    ultra:{particles:2200,dpr:2,glow:1.35,wire:true},
+    high:{particles:900,dpr:1.5,glow:1,wire:true},
+    balanced:{particles:520,dpr:1.15,glow:.85,wire:true},
+    battery:{particles:180,dpr:.85,glow:.55,wire:false},
+  };
+  function applySettings(){
+    const S=state.settings;
+    $('#sParticles').value=S.particles; $('#vParticles').textContent=S.particles;
+    $('#sDpr').value=S.dpr; $('#vDpr').textContent=Number(S.dpr).toFixed(2);
+    $('#sGlow').value=S.glow; $('#vGlow').textContent=Number(S.glow).toFixed(2);
+    $('#sWarp').value=S.warp; $('#vWarp').textContent=Number(S.warp).toFixed(2)+'×';
+    $('#tOrbit').classList.toggle('on',S.orbit);
+    $('#tWire').classList.toggle('on',S.wire);
+    $('#tFreeze').classList.toggle('on',S.freeze);
+    $('#tHud').classList.toggle('on',S.hud);
+    $('#hud').classList.toggle('show',S.hud);
+    $$('#presets button').forEach(b=>b.classList.toggle('on',b.dataset.q===S.quality));
+    if(R){ R.setParticles(S.particles|0); }
+    save();
+  }
+  function setPreset(q){
+    state.settings={...state.settings,...PRESETS[q],quality:q};
+    applySettings(); toast(`${q} preset applied`);
+  }
+
+  function wire(){
+    $$('[data-act]').forEach(b=>b.onclick=()=>{
+      const a=b.dataset.act;
+      if(a==='bio') openBioModal();
+      if(a==='bothub') BotBridge.toggleHub();
+      if(a==='oracle'){
+        const p=$('#oraclePanel'); p.classList.toggle('hidden');
+        b.classList.toggle('on',!p.classList.contains('hidden'));
+        if(!p.classList.contains('hidden')){ Oracle.setSeed(Date.now()); renderOracle(currentTab); }
+      }
+      if(a==='sound') toggleSound();
+      if(a==='dev'){ const d=$('#devDrawer'); d.classList.toggle('open'); b.classList.toggle('on',d.classList.contains('open')); }
+      if(a==='crew'){ const p=$('#crewPanel'); p.classList.toggle('hidden'); }
+    });
+    $$('.tabs button').forEach(b=>b.onclick=()=>{ Oracle.setSeed(Date.now()); renderOracle(b.dataset.tab); });
+    $('#oracleBody').addEventListener('click',e=>{
+      const g=e.target.closest('[data-gen]');
+      if(g){ Oracle.setSeed(Date.now()); renderOracle(currentTab); Audio_.duck(); return; }
+      const ci=e.target.closest('[data-copy-ci]');
+      if(ci){ copyCheckin(); return; }
+      const pci=e.target.closest('[data-push-ci]');
+      if(pci){ BotBridge.pushToStatus({text:buildCheckinText()}); return; }
+      const cp=e.target.closest('[data-copy]');
+      if(cp){
+        const q=$('#oracleBody').dataset.q||'';
+        copyText(q,()=>toast('question copied'),()=>toast('copy blocked by browser'));
+        return;
+      }
+      const st=e.target.closest('[data-plan]');
+      if(st){ toast(`plan: ${st.dataset.plan} — go to the chat`); Audio_.duck(); }
+    });
+    $('#groupBtn').onclick=askRename;
+    $('#addMember').onclick=askAddMember;
+    $('#crewList').addEventListener('contextmenu',e=>{
+      const li=e.target.closest('li'); if(!li) return;
+      e.preventDefault(); memberCard(li.dataset.id);
+    });
+
+    $('#modal').addEventListener('click',e=>{
+      if(e.target.id==='modal'||e.target.closest('[data-close]')) closeModal();
+    });
+
+    const bind=(id,key,fmt,after)=>{
+      const s=$(id);
+      s.oninput=()=>{
+        state.settings[key]=parseFloat(s.value);
+        $(fmt.el).textContent=fmt.fn(state.settings[key]);
+        after && after(); save();
+      };
+    };
+    bind('#sParticles','particles',{el:'#vParticles',fn:v=>v|0},()=>R&&R.setParticles(state.settings.particles|0));
+    bind('#sDpr','dpr',{el:'#vDpr',fn:v=>v.toFixed(2)});
+    bind('#sGlow','glow',{el:'#vGlow',fn:v=>v.toFixed(2)});
+    bind('#sWarp','warp',{el:'#vWarp',fn:v=>v.toFixed(2)+'×'});
+    $$('#presets button').forEach(b=>b.onclick=()=>setPreset(b.dataset.q));
+    $('#tOrbit').onclick=()=>{state.settings.orbit=!state.settings.orbit;applySettings();};
+    $('#tWire').onclick=()=>{state.settings.wire=!state.settings.wire;applySettings();};
+    $('#tFreeze').onclick=()=>{state.settings.freeze=!state.settings.freeze;applySettings();};
+    $('#tHud').onclick=()=>{state.settings.hud=!state.settings.hud;applySettings();};
+    $('#reseed').onclick=()=>{ Oracle.setSeed(Date.now()); if(R)R.setParticles(state.settings.particles|0);
+      if(currentTab!=='ai') renderOracle(currentTab); toast('scene reseeded'); };
+    $('#resetAll').onclick=()=>{
+      state.settings={...DEFAULT_SETTINGS}; state.selected=null; applySettings();
+      renderCrew(); toast('settings reset');
+    };
+
+    window.addEventListener('keydown',e=>{
+      if(e.target.matches('input,textarea,select')) return;
+      const k=e.key.toLowerCase();
+      if(k>='1'&&k<='7') setMood(MOODS[+k-1].id);
+      if(k==='b') BotBridge.toggleHub();
+      if(k==='o') $('[data-act="oracle"]').click();
+      if(k==='d') $('[data-act="dev"]').click();
+      if(k==='s') toggleSound();
+      if(k==='h'){ state.settings.hud=!state.settings.hud; applySettings(); }
+      if(k==='f'){ state.settings.freeze=!state.settings.freeze; applySettings(); }
+      if(k==='escape'){ closeModal(); BotBridge.toggleHub(false); }
+    });
+  }
+
+  function init(){
+    load();
+    $('#groupName').textContent=state.group;
+    renderMoods(); renderCrew(); renderPill(); renderClock();
+    setInterval(renderClock,20000);
+    applySettings();
+    wire();
+    BotBridge.wire();
+    if(R) R.start();
+    Oracle.setSeed(Date.now());
+    if(R){ setTimeout(()=>$('#boot').classList.add('gone'),650); }
+    else {
+      $('#boot').innerHTML='3d renderer unavailable in this browser<br><span style="opacity:.7;letter-spacing:.08em">the room, crew, oracle & bot hub still work</span>';
+      setTimeout(()=>$('#boot').classList.add('gone'),2000);
+    }
+    setTimeout(()=>{
+      toast(`karibu ${state.group} — click ⚡ Bot Hub or press 1–7 for moods`);
+    },950);
+    setInterval(()=>{ renderPill(); },3000);
+  }
+  return {init,selectMember,setMood,renderCrew,renderPill,effectiveMood,buildCheckinText};
+})();
+
+document.addEventListener('DOMContentLoaded',()=>{ App.init(); });
+</script>
+</body>
+</html>

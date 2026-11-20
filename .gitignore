@@ -1,0 +1,12 @@
+node_modules/
+session/
+data/
+uploads/
+.cache/
+Unselected files/
+*.zip
+.env
+config.env
+*.log
+.DS_Store
+npm-debug.log*

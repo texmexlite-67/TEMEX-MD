@@ -1,0 +1,19 @@
+services:
+  texmex-md:
+    build: .
+    container_name: texmex-md
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - BOT_NAME=TEXMEX-MD
+      - OWNER_NAME=TEXMEX-MD
+      - PORT=3000
+      - MODE=${MODE:-public}
+      - PREFIX=${PREFIX:-.}
+      - SESSION_ID=${SESSION_ID:-}
+      - OWNER_NUMBER=${OWNER_NUMBER:-}
+      - TZ=${TZ:-Africa/Nairobi}
+    volumes:
+      - ./session:/app/session
+      - ./data:/app/data

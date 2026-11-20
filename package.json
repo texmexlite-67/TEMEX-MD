@@ -1,0 +1,57 @@
+{
+  "name": "texmex-md",
+  "version": "2.0.0",
+  "description": "TEXMEX-MD — Universal Multi-Device WhatsApp Bot built for all deployment platforms (Heroku, Render, Koyeb, Railway, Docker, Pterodactyl/Panels, VPS, Termux)",
+  "main": "index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "pm2": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop texmex-md",
+    "pm2:logs": "pm2 logs texmex-md",
+    "test": "node scripts/self-test.js",
+    "doctor": "node scripts/env-doctor.js"
+  },
+  "keywords": [
+    "whatsapp-bot",
+    "multi-device",
+    "baileys",
+    "texmex-md",
+    "whatsapp-md",
+    "heroku",
+    "render",
+    "koyeb",
+    "railway",
+    "pterodactyl",
+    "termux"
+  ],
+  "author": "TEXMEX-MD (Developed by TEXMEX with ❤️)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/texmexlite-67/TEMEX-MD.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "@vreden/youtube_scraper": "^1.2.9",
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "msedge-tts": "^2.1.1",
+    "node-cache": "^5.1.2",
+    "node-webpmux": "^3.1.7",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4",
+    "ruhend-scraper": "^10.0.3",
+    "social-dl": "^2.4.4",
+    "yt-search": "^2.13.1"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.33.5"
+  }
+}
