@@ -88,7 +88,7 @@ export const config = {
   repoWebUrl,
   links,
   autoSetBio: parseBool(process.env.AUTO_SET_BIO, true),
-  developerTag: 'Developed by TEXMEX with ❤️',
+  developerTag: 'Developed by TEXMEX with ❤️ · https://temex-md.onrender.com/',
   timeZone: process.env.TZ || 'Africa/Nairobi'
 };
 

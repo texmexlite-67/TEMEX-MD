@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: texmex-md
+    name: temex-md
     runtime: docker
     plan: free
     healthCheckPath: /health
@@ -9,6 +9,10 @@ services:
         value: TEXMEX-MD
       - key: OWNER_NAME
         value: TEXMEX-MD
+      - key: PUBLIC_URL
+        value: https://temex-md.onrender.com/
+      - key: KEEP_ALIVE_URL
+        value: https://temex-md.onrender.com/health
       - key: PREFIX
         value: "."
       - key: MODE

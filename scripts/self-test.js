@@ -143,7 +143,8 @@ async function runSelfTests() {
     assert.equal(health.ok, true);
     assert.equal(health.bot, 'TEXMEX-MD');
     assert.equal(health.owner, 'TEXMEX-MD');
-    assert.equal(health.developer, 'Developed by TEXMEX with ❤️');
+    assert.equal(health.developer, 'Developed by TEXMEX with ❤️ · https://temex-md.onrender.com/');
+    assert.equal(health.links.websiteUrl, 'https://temex-md.onrender.com/');
     assert.equal(health.repository, 'https://github.com/texmexlite-67/TEMEX-MD.git');
 
     const statusRes = await fetch(`http://127.0.0.1:${port}/api/status`);
@@ -151,10 +152,19 @@ async function runSelfTests() {
     assert.equal(statusJson.ok, true);
     assert.equal(statusJson.state.botName, 'TEXMEX-MD');
 
+    const phonkRes = await fetch(`http://127.0.0.1:${port}/api/phonk/presets`);
+    const phonkJson = await phonkRes.json();
+    assert.equal(phonkJson.ok, true);
+    const genreIds = phonkJson.genres.map((g) => g.id);
+    for (const g of ['brazilian_funk', 'drift_phonk', 'phonk', 'favela', 'trap', 'jumpstyle']) {
+      assert.ok(genreIds.includes(g), `Missing studio genre preset: ${g}`);
+    }
+
     const htmlRes = await fetch(`http://127.0.0.1:${port}/`);
     const html = await htmlRes.text();
     assert.ok(html.includes('TEXMEX-MD'), 'Dashboard HTML must render TEXMEX-MD UI');
-    console.log('✅ [6/6] Express Web Pairing Hub & /health endpoints verified');
+    assert.ok(html.includes('bh-phonk'), 'Dashboard HTML must render AI Phonk Studio UI');
+    console.log('✅ [6/6] Express Web Pairing Hub, AI Phonk Studio & /health endpoints verified');
   } finally {
     srv.close();
   }

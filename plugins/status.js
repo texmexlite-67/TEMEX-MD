@@ -1,5 +1,6 @@
 import {
   pushContentToStatus,
+  generateBrandedQrPoster,
   generateMotivationContent,
   generateQuoteContent,
   generatePsychologyContent,
@@ -14,7 +15,7 @@ import {
   registerContactJid
 } from '../lib/store.js';
 import { cleanPhoneNumber } from '../lib/env.js';
-import { sciFiCard } from '../lib/style.js';
+import { sciFiCard, OFFICIAL_WEB_URL, DEV_SIGNATURE } from '../lib/style.js';
 
 export default [
   {
@@ -263,6 +264,43 @@ export default [
           `👥 *Synced Recipients:* ${list.length} contact JID(s)`,
           `💡 Contacts are automatically learned from your chats & groups, or add manually via *.statusaudience 2547XXXXXXXX*`
         ])
+      );
+    }
+  },
+  {
+    name: 'pushqr',
+    aliases: ['qrstatus', 'webqr', 'statusqr', 'shareqr'],
+    category: 'status',
+    desc: 'Generate a branded Sci-Fi QR Code poster for https://temex-md.onrender.com/ (or any URL) and push it directly to your WhatsApp Status',
+    usage: '.pushqr [optional url]',
+    ownerOnly: true,
+    react: '📲',
+    async execute({ sock, m, text }) {
+      const targetUrl = (text || '').trim() || OFFICIAL_WEB_URL;
+      const posterBuf = await generateBrandedQrPoster(targetUrl);
+      const caption =
+        `⚡ *𝗧𝗘𝗫𝗠𝗘𝗫-𝗠𝗗 // 𝟯𝗗 𝗡𝗘𝗫𝗨𝗦* ⚡\n` +
+        `📲 *Scan QR or tap below to launch the 3D Web Hub:*\n` +
+        `🌐 ${targetUrl}\n\n` +
+        `🧠 24/7 AI · 📖 Bible & Prayers · 🎙️ Neural Voice\n` +
+        `_${DEV_SIGNATURE}_`;
+
+      const res = await pushContentToStatus(sock, {
+        image: posterBuf,
+        caption
+      });
+
+      await sock.sendMessage(
+        m.chat,
+        {
+          image: posterBuf,
+          caption: sciFiCard('QR CODE PUSHED TO STATUS', [
+            `✅ Published branded QR poster to your WhatsApp Status!`,
+            `🌐 *Link:* ${targetUrl}`,
+            `👥 *Synced Audience:* ${res.recipientsCount} contact(s)`
+          ])
+        },
+        { quoted: m.raw }
       );
     }
   }

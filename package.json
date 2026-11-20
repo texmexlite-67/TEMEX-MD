@@ -29,7 +29,8 @@
     "pterodactyl",
     "termux"
   ],
-  "author": "TEXMEX-MD (Developed by TEXMEX with ❤️)",
+  "author": "TEXMEX-MD (Developed by TEXMEX with ❤️ · https://temex-md.onrender.com/)",
+  "homepage": "https://temex-md.onrender.com/",
   "repository": {
     "type": "git",
     "url": "https://github.com/texmexlite-67/TEMEX-MD.git"
@@ -42,6 +43,7 @@
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "ffmpeg-static": "^5.3.0",
     "msedge-tts": "^2.1.1",
     "node-cache": "^5.1.2",
     "node-webpmux": "^3.1.7",

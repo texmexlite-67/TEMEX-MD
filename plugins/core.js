@@ -28,6 +28,7 @@ export function formatDuration(ms) {
 
 const CATEGORY_TITLES = {
   core: `⚡ ${toSciFiBold('CORE & TELEMETRY')}`,
+  phonk: `🎵 ${toSciFiBold('AI PHONK & FUNK STUDIO')}`,
   download: `📥 ${toSciFiBold('DOWNLOADER HUB')}`,
   group: `🛡️ ${toSciFiBold('GROUP CONTROLLER')}`,
   mind: `🧠 ${toSciFiBold('MIND, SPIRIT & BIBLE')}`,
@@ -101,7 +102,7 @@ export default [
         `┃ 🔗 *${toCyberCaps('repo')}:* github.com/texmexlite-67/TEMEX-MD\n` +
         `┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n`;
 
-      const order = ['core', 'download', 'group', 'mind', 'voice', 'status', 'ai', 'media', 'tools', 'owner'];
+      const order = ['core', 'phonk', 'download', 'group', 'mind', 'voice', 'status', 'ai', 'media', 'tools', 'owner'];
       const allCats = [...new Set([...order, ...Object.keys(grouped)])];
 
       const sections = [];
@@ -134,7 +135,7 @@ export default [
                   body: config.developerTag,
                   mediaType: 1,
                   ...(thumbBuf ? { thumbnail: thumbBuf } : {}),
-                  sourceUrl: config.repoWebUrl
+                  sourceUrl: config.links.websiteUrl || config.repoWebUrl
                 }
               }
             },
@@ -166,6 +167,7 @@ export default [
           `⏱️ *${toCyberCaps('uptime')}:* ${uptime}`,
           `🧠 *${toCyberCaps('memory')}:* ${ram} MB`,
           `⚡ *${toCyberCaps('executed')}:* ${stats.commandsExecuted} cmds`,
+          `🌐 *${toCyberCaps('web')}:* ${config.links.websiteUrl}`,
           `🔗 *${toCyberCaps('github')}:* ${config.repoWebUrl}`
         ]) + `\n\n_Type *${prefix}menu* to launch command nexus._`;
 

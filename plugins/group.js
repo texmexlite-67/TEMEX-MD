@@ -10,7 +10,13 @@ import {
 import { extractNumber, getGroupMetaSafe } from '../lib/serialize.js';
 import { cleanPhoneNumber } from '../lib/env.js';
 import { updateWhatsAppDp } from '../lib/avatar.js';
-import { sciFiCard, sciFiHeader, DEV_SIGNATURE } from '../lib/style.js';
+import {
+  sciFiCard,
+  sciFiHeader,
+  DEV_SIGNATURE,
+  TAG_DESCRIPTION,
+  OFFICIAL_WEB_URL
+} from '../lib/style.js';
 
 function resolveTargetJid(m, args) {
   if (m.quoted?.sender) return jidNormalizedUser(m.quoted.sender);
@@ -83,7 +89,12 @@ export default [
       await sock.sendMessage(
         m.chat,
         {
-          text: `${sciFiHeader('GROUP BROADCAST')}\n\n💬 ${announcement}\n\n${tagsLine}\n\n_${DEV_SIGNATURE}_`,
+          text:
+            `${sciFiHeader('GROUP BROADCAST')}\n\n` +
+            `💬 ${announcement}\n` +
+            `🌐 *Web:* ${OFFICIAL_WEB_URL}\n\n` +
+            `${tagsLine}\n\n` +
+            `_${DEV_SIGNATURE}_`,
           mentions
         },
         { quoted: m.raw }
@@ -108,6 +119,7 @@ export default [
         `${sciFiHeader('GROUP TAGALL')}\n` +
         `🏷️ *Group:* ${meta?.subject || 'Group'}\n` +
         `👥 *Members:* ${participants.length}\n` +
+        `🌐 *Web:* ${OFFICIAL_WEB_URL}\n` +
         (text ? `💬 *Note:* ${text}\n` : '') +
         `\n`;
 
@@ -133,7 +145,10 @@ export default [
     async execute({ sock, m, text, groupMeta }) {
       const meta = groupMeta || (await getGroupMetaSafe(sock, m.chat, true));
       const mentions = (meta?.participants || []).map((p) => p.id);
-      const body = text || m.quoted?.text || '📢 Group Notice!';
+      const rawBody = text || m.quoted?.text || '📢 Group Notice!';
+      const body = rawBody.includes('temex-md.onrender.com')
+        ? rawBody
+        : `${rawBody}\n\n_${TAG_DESCRIPTION}_`;
       await sock.sendMessage(m.chat, { text: body, mentions });
     }
   },
@@ -159,6 +174,7 @@ export default [
       const body =
         `${sciFiHeader('GROUP ADMINS')}\n` +
         `🏷️ *Group:* ${meta?.subject || 'Group'}\n` +
+        `🌐 *Web:* ${OFFICIAL_WEB_URL}\n` +
         (text ? `💬 *Alert:* ${text}\n` : '') +
         `\n${list}\n\n_${DEV_SIGNATURE}_`;
 
@@ -386,7 +402,10 @@ export default [
       }
 
       const src = m.quoted || m;
-      const caption = text || src.text || `📢 ${meta?.subject || 'Group'} Status Update`;
+      const baseCaption = text || src.text || `📢 ${meta?.subject || 'Group'} Status Update`;
+      const caption = baseCaption.includes('temex-md.onrender.com')
+        ? baseCaption
+        : `${baseCaption}\n\n_${TAG_DESCRIPTION}_`;
 
       if (src.mtype === 'imageMessage') {
         const buf = await src.download();
@@ -484,8 +503,8 @@ export default [
     name: 'gabout',
     aliases: ['setgdesc', 'setdesc', 'gdesc'],
     category: 'group',
-    desc: 'View the Group About/Description, or pass new text to update it',
-    usage: '.gabout [new description]',
+    desc: 'View the Group About/Description, or pass new text (or "default") to update it with TEXMEX-MD link',
+    usage: '.gabout [new description | default]',
     groupOnly: true,
     react: '📝',
     async execute({ sock, m, text, groupMeta, isAdmin, isBotAdmin }) {
@@ -494,6 +513,7 @@ export default [
         return m.reply(
           sciFiCard('GROUP ABOUT', [
             `🏷️ *Group:* ${meta?.subject || 'Group'}`,
+            `🌐 *Official Web:* ${OFFICIAL_WEB_URL}`,
             `📝 *Description:*`,
             `${meta?.desc || '_No group description set._'}`
           ])
@@ -506,12 +526,27 @@ export default [
       if (!isBotAdmin) {
         return m.reply('⚠️ Promote TEXMEX-MD to Group Admin first.');
       }
-      await sock.groupUpdateDescription(m.chat, text);
+
+      const defaultGroupDesc =
+        `⚡ 𝗧𝗘𝗫𝗠𝗘𝗫-𝗠𝗗 // 𝟯𝗗 𝗡𝗘𝗫𝗨𝗦 ⚡\n` +
+        `🧠 AI · 📖 Bible & Prayers · 🎙️ Voice · 🛡️ 24/7 Group Guard\n` +
+        `🌐 Official Web: ${OFFICIAL_WEB_URL}\n` +
+        `🐙 GitHub: https://github.com/texmexlite-67/TEMEX-MD\n` +
+        `❤️ Developed by TEXMEX with ❤️`;
+
+      const finalDesc =
+        ['default', 'sync', 'texmex'].includes(text.trim().toLowerCase())
+          ? defaultGroupDesc
+          : text.includes('temex-md.onrender.com')
+            ? text
+            : `${text}\n\n🌐 ${OFFICIAL_WEB_URL}`;
+
+      await sock.groupUpdateDescription(m.chat, finalDesc);
       groupCache.del(m.chat);
       await m.reply(
         sciFiCard('GROUP ABOUT UPDATED', [
           `✅ Updated group description:`,
-          `${text}`
+          `${finalDesc}`
         ])
       );
     }

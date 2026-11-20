@@ -1,7 +1,7 @@
 # ⟁ 𝗧𝗘𝗫𝗠𝗘𝗫-𝗠𝗗 // 𝗖𝗬𝗕𝗘𝗥-𝗠𝗗 𝗡𝗘𝗫𝗨𝗦 ⟁
 
-> **Bot Name:** `TEXMEX-MD` · **Owner:** `TEXMEX-MD` · **Repo:** [`https://github.com/texmexlite-67/TEMEX-MD.git`](https://github.com/texmexlite-67/TEMEX-MD.git)  
-> ⚡ **Developed by TEXMEX with ❤️**
+> **Bot Name:** `TEXMEX-MD` · **Owner:** `TEXMEX-MD` · **Live Web:** [`https://temex-md.onrender.com/`](https://temex-md.onrender.com/) · **Repo:** [`https://github.com/texmexlite-67/TEMEX-MD.git`](https://github.com/texmexlite-67/TEMEX-MD.git)  
+> ⚡ **Developed by TEXMEX with ❤️ · 🌐 https://temex-md.onrender.com/**
 
 [![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/texmexlite-67/TEMEX-MD)
 
