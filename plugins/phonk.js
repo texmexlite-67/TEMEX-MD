@@ -2,8 +2,12 @@ import fs from 'node:fs';
 import {
   PHONK_GENRES,
   PHONK_MOODS,
+  PHONK_TYPES,
+  PHONK_EFFECTS,
   normalizeGenre,
   normalizeMood,
+  normalizeType,
+  normalizeEffect,
   generatePhonkStudioBundle
 } from '../lib/phonk-studio.js';
 import { pushContentToStatus } from '../lib/status-poster.js';
@@ -11,20 +15,42 @@ import { sciFiCard, DEV_SIGNATURE, OFFICIAL_WEB_URL } from '../lib/style.js';
 
 /**
  * Parse flexible studio input:
- * - Pipe format: "132 | brazilian_funk | energetic | midnight neon street bass"
- * - Or natural text containing optional BPM (e.g. "160bpm aggressive tokyo drift cowbell")
+ * - Pipe format: "132 | brazilian_funk | hypnotic | crushed | slowed | midnight rio no batidao"
+ * - Or 4-part pipe: "132 | brazilian_funk | hypnotic | midnight rio crushed slowed"
+ * - Or natural text containing optional BPM, mood, type (crushed), effect (slowed), nobatidao
  */
 function parsePhonkInput(rawText, forcedGenre = '') {
   const txt = String(rawText || '').trim();
+  const lower = txt.toLowerCase();
+  const forceNoBatidao =
+    lower.includes('no batidao') ||
+    lower.includes('nobatidao') ||
+    lower.includes('instrumental');
+
   if (txt.includes('|')) {
     const parts = txt.split('|').map((s) => s.trim());
     const bpmNum = Number.parseInt(parts[0], 10);
     if (Number.isFinite(bpmNum) && parts.length >= 3) {
+      if (parts.length >= 6) {
+        return {
+          bpm: bpmNum,
+          genre: forcedGenre || normalizeGenre(parts[1]),
+          mood: normalizeMood(parts[2]),
+          type: normalizeType(parts[3]),
+          effect: normalizeEffect(parts[4]),
+          vocalMode: forceNoBatidao ? 'cd_no_batidao' : 'auto_aligned',
+          prompt: parts.slice(5).join(' | ') || parts[2]
+        };
+      }
+      const tail = parts.slice(3).join(' | ') || parts[2];
       return {
         bpm: bpmNum,
         genre: forcedGenre || normalizeGenre(parts[1]),
         mood: normalizeMood(parts[2]),
-        prompt: parts.slice(3).join(' | ') || parts[2]
+        type: normalizeType(tail),
+        effect: normalizeEffect(tail),
+        vocalMode: forceNoBatidao ? 'cd_no_batidao' : 'auto_aligned',
+        prompt: tail
       };
     }
   }
@@ -32,6 +58,8 @@ function parsePhonkInput(rawText, forcedGenre = '') {
   const bpmMatch = txt.match(/\b(9\d|1\d{2})\s*(?:bpm)?\b/i);
   const detectedGenre = forcedGenre || normalizeGenre(txt);
   const detectedMood = normalizeMood(txt);
+  const detectedType = normalizeType(txt);
+  const detectedEffect = normalizeEffect(txt);
   const bpm = bpmMatch
     ? Number.parseInt(bpmMatch[1], 10)
     : PHONK_GENRES[detectedGenre].defaultBpm;
@@ -40,6 +68,9 @@ function parsePhonkInput(rawText, forcedGenre = '') {
     bpm,
     genre: detectedGenre,
     mood: detectedMood,
+    type: detectedType,
+    effect: detectedEffect,
+    vocalMode: forceNoBatidao ? 'cd_no_batidao' : 'auto_aligned',
     prompt: txt
   };
 }
@@ -47,39 +78,36 @@ function parsePhonkInput(rawText, forcedGenre = '') {
 async function runPhonkCommand({ sock, m, text, prefix, forcedGenre = '', pushStatus = false }) {
   if (!text && !forcedGenre) {
     return m.reply(
-      sciFiCard('AI PHONK & FUNK STUDIO — SETUP', [
-        `🎛️ *Please specify your BPM, Genre, Mood & Prompt:*`,
-        `▸ *Format:* ${prefix}phonk <BPM> | <Genre> | <Mood> | <Prompt>`,
+      sciFiCard('AI PHONK & NO BATIDÃO STUDIO (160s+)', [
+        `🎛️ *Specify BPM, Genre, Mood, Type, Effect & Prompt:*`,
+        `▸ ${prefix}phonk <BPM> | <Genre> | <Mood> | <Type> | <Effect> | <Prompt>`,
         ``,
-        `🥁 *Available Studio Kits / Genres:*`,
-        `  • *brazilian_funk* (2020s Automotivo / Montagem Bass)`,
-        `  • *drift_phonk* (808 Tuned Cowbell Drift)`,
-        `  • *phonk* (Classic Dark Street Phonk)`,
-        `  • *favela* (Favela Baile Funk Rhythm)`,
-        `  • *trap* (2020s Hard Rage / Spinz 808 Trap)`,
-        `  • *jumpstyle* (Hard Jumpstyle / Reverse Donk)`,
+        `🥁 *Genres:* brazilian_funk · drift_phonk · phonk · favela · trap · jumpstyle`,
+        `🌀 *Moods:* hypnotic · energetic · aggressive · dark · drift · favela_heat · euphoric`,
+        `💥 *Types:* no_batidao_cd · crushed · automotivo · memphis_tape`,
+        `🌊 *Effects:* none · slowed · sped_up · bass_boost`,
+        `🎙️ *Vocals:* Beat-aligned Best/Alt AI Vocals — auto-switches to *YouTube No Batidão CD Instrumental* if vocals are unaligned!`,
         ``,
-        `🔥 *Available Moods:*`,
-        `  • energetic · aggressive · dark · drift · favela_heat · euphoric`,
-        ``,
-        `⚡ *Example:*`,
-        `  ${prefix}phonk 132 | brazilian_funk | energetic | midnight neon rio bassline`,
-        `  ${prefix}driftphonk 160 | aggressive | tokyo street race`,
-        `🌐 *Full Web Visualizer Studio:* ${OFFICIAL_WEB_URL}`
+        `⚡ *Examples (160s+ Full Song MP4 + MP3):*`,
+        `  ${prefix}phonk 130 | brazilian_funk | hypnotic | crushed | slowed | midnight rio no batidao`,
+        `  ${prefix}driftphonk 160 | aggressive | crushed | tokyo midnight drift`,
+        `🌐 *Web Studio:* ${OFFICIAL_WEB_URL}`
       ])
     );
   }
 
   const params = parsePhonkInput(
-    text || `${PHONK_GENRES[forcedGenre || 'brazilian_funk'].defaultBpm} energetic club anthem`,
+    text || `${PHONK_GENRES[forcedGenre || 'brazilian_funk'].defaultBpm} hypnotic club anthem`,
     forcedGenre
   );
 
   await m.reply(
-    `🎛️ *AI Phonk Studio synthesizing...*\n` +
+    `🎛️ *AI Phonk Studio producing full 160s+ song...*\n` +
       `• *Kit:* ${PHONK_GENRES[params.genre].label}\n` +
       `• *BPM:* ${params.bpm} · *Mood:* ${PHONK_MOODS[params.mood].label}\n` +
-      `• *Pipeline:* AI Prompt Upgrade → 2020s Bass & Lead → AI Vocals → Anime Theme → Consistent MP4 + MP3`
+      `• *Type:* ${PHONK_TYPES[params.type].label}\n` +
+      `• *Effect:* ${PHONK_EFFECTS[params.effect].label}\n` +
+      `• *Vocals:* Smart Beat-Align / No Batidão CD Instrumental Gate`
   );
 
   const bundle = await generatePhonkStudioBundle({
@@ -87,24 +115,28 @@ async function runPhonkCommand({ sock, m, text, prefix, forcedGenre = '', pushSt
     bpm: params.bpm,
     genre: params.genre,
     mood: params.mood,
-    includeVocals: true
+    type: params.type,
+    effect: params.effect,
+    durationSec: 168,
+    includeVocals: params.vocalMode !== 'cd_no_batidao',
+    vocalMode: params.vocalMode
   });
 
   const mp4Buf = fs.readFileSync(bundle.paths.mp4Path);
   const mp3Buf = fs.readFileSync(bundle.paths.mp3Path);
 
   const caption =
-    sciFiCard('AI PHONK STUDIO // RENDERED', [
+    sciFiCard('AI PHONK STUDIO // 160s+ CD MASTER', [
       `🎵 *Title:* ${bundle.title}`,
       `💿 *Album:* ${bundle.album}`,
+      `⏱️ *Length:* ${bundle.durationSec}s (${Math.floor(bundle.durationSec / 60)}m ${Math.round(bundle.durationSec % 60)}s · ${bundle.bars} bars)`,
       `🥁 *Kit:* ${bundle.genreLabel}`,
-      `⚡ *BPM:* ${bundle.bpm} · *Mood:* ${bundle.moodLabel}`,
-      `🎙️ *AI Vocals:* "${bundle.vocalScript}"`,
-      `✨ *AI Direction:* ${bundle.enhancedPrompt}`,
-      `📦 *Consistent Export:* MP4 Visualizer + 320kbps MP3 below!`
+      `🌀 *BPM / Mood:* ${bundle.effectiveBpm} BPM · ${bundle.moodLabel}`,
+      `💥 *Type / FX:* ${bundle.typeLabel} · ${bundle.effectLabel}`,
+      `🎙️ *Vocal Engine:* ${bundle.vocalModeUsed}`,
+      `📦 *Consistent Export:* Full MP4 Anime Visualizer + MP3 below!`
     ]);
 
-  // 1. Deliver Rendered Anime Visualizer MP4 Video
   await sock.sendMessage(
     m.chat,
     {
@@ -115,7 +147,6 @@ async function runPhonkCommand({ sock, m, text, prefix, forcedGenre = '', pushSt
     { quoted: m.raw }
   );
 
-  // 2. Deliver Consistent Mastered 320kbps MP3 Audio File
   await sock.sendMessage(
     m.chat,
     {
@@ -131,7 +162,7 @@ async function runPhonkCommand({ sock, m, text, prefix, forcedGenre = '', pushSt
     const res = await pushContentToStatus(sock, {
       video: mp4Buf,
       caption:
-        `🎵 *${bundle.title}* (${bundle.bpm} BPM · ${bundle.genreLabel})\n` +
+        `🎵 *${bundle.title}* (${bundle.durationSec}s · ${bundle.effectiveBpm} BPM)\n` +
         `_${DEV_SIGNATURE}_`
     });
     await m.reply(`📡 *Visualizer MP4 also pushed to your WhatsApp Status (${res.recipientsCount} contacts)!*`);
@@ -141,10 +172,10 @@ async function runPhonkCommand({ sock, m, text, prefix, forcedGenre = '', pushSt
 export default [
   {
     name: 'phonk',
-    aliases: ['phonkstudio', 'makephonk', 'aiphonk'],
+    aliases: ['phonkstudio', 'makephonk', 'aiphonk', 'nobatidao'],
     category: 'phonk',
-    desc: 'AI Phonk & 2020s Brazilian Funk Studio — asks for BPM, Genre, Mood & Prompt, then renders consistent Anime Visualizer MP4 + Mastered MP3',
-    usage: '.phonk <BPM> | <Genre> | <Mood> | <Prompt>',
+    desc: '160s+ AI Phonk & No Batidão Studio — supports Hypnotic mood, Crushed type, Slowed effect & Smart Vocal Alignment (MP4 + MP3)',
+    usage: '.phonk <BPM> | <Genre> | <Mood> | <Type> | <Effect> | <Prompt>',
     react: '🎵',
     async execute(ctx) {
       await runPhonkCommand(ctx);
@@ -154,7 +185,7 @@ export default [
     name: 'brazilianfunk',
     aliases: ['funk', 'automotivo', 'montagem', 'brfunk'],
     category: 'phonk',
-    desc: 'Generate a 2020s Brazilian Automotivo / Montagem Funk banger with sliding bass melodies, AI vocals & Anime Visualizer (MP4 + MP3)',
+    desc: '160s+ 2020s Brazilian Automotivo / No Batidão song with bass melodies, aligned AI vocals or CD instrumental & Anime Visualizer',
     usage: '.brazilianfunk [BPM | Mood | Prompt]',
     react: '🇧🇷',
     async execute(ctx) {
@@ -165,7 +196,7 @@ export default [
     name: 'driftphonk',
     aliases: ['drift', 'cowbell'],
     category: 'phonk',
-    desc: 'Generate a high-speed 808 Cowbell Drift Phonk anthem with Memphis AI vocal chops & Anime Visualizer (MP4 + MP3)',
+    desc: '160s+ 808 Cowbell Drift Phonk song with Crushed / Slowed support & Anime Visualizer (MP4 + MP3)',
     usage: '.driftphonk [BPM | Mood | Prompt]',
     react: '🏎️',
     async execute(ctx) {
@@ -176,7 +207,7 @@ export default [
     name: 'favela',
     aliases: ['baile', 'favelafunk'],
     category: 'phonk',
-    desc: 'Generate an energetic Favela Baile Funk rhythm with bouncing sub-bass, AI MC vocals & Anime Visualizer (MP4 + MP3)',
+    desc: '160s+ Favela Baile Funk song with Tamborzão rhythm, bouncing bass & Anime Visualizer (MP4 + MP3)',
     usage: '.favela [BPM | Mood | Prompt]',
     react: '🔥',
     async execute(ctx) {
@@ -187,7 +218,7 @@ export default [
     name: 'trapbeat',
     aliases: ['trap', 'ragebeat'],
     category: 'phonk',
-    desc: 'Generate a hard 2020s Rage / Spinz 808 Trap beat with AI vocals & Anime Visualizer (MP4 + MP3)',
+    desc: '160s+ 2020s Hard Rage / Spinz 808 Trap song & Anime Visualizer (MP4 + MP3)',
     usage: '.trapbeat [BPM | Mood | Prompt]',
     react: '⚡',
     async execute(ctx) {
@@ -198,7 +229,7 @@ export default [
     name: 'jumpstyle',
     aliases: ['krushclub', 'jumpbeat'],
     category: 'phonk',
-    desc: 'Generate a 2020s Hard Jumpstyle / Krushclub rave track with reverse-bass donk, AI vocals & Anime Visualizer (MP4 + MP3)',
+    desc: '160s+ Hard Jumpstyle / Krushclub rave song with reverse-bass donk, Crushed grit & Anime Visualizer (MP4 + MP3)',
     usage: '.jumpstyle [BPM | Mood | Prompt]',
     react: '🔊',
     async execute(ctx) {
@@ -209,8 +240,8 @@ export default [
     name: 'pushphonk',
     aliases: ['phonkstatus'],
     category: 'phonk',
-    desc: 'Generate an AI Phonk / Brazilian Funk Anime Visualizer MP4 + MP3 and publish the Visualizer straight to your WhatsApp Status',
-    usage: '.pushphonk <BPM> | <Genre> | <Mood> | <Prompt>',
+    desc: 'Produce a 160s+ AI Phonk / No Batidão song + Anime Visualizer MP4 and publish straight to WhatsApp Status',
+    usage: '.pushphonk <BPM> | <Genre> | <Mood> | <Type> | <Effect> | <Prompt>',
     ownerOnly: true,
     react: '📡',
     async execute(ctx) {

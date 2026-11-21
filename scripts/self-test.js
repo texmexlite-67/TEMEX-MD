@@ -155,16 +155,28 @@ async function runSelfTests() {
     const phonkRes = await fetch(`http://127.0.0.1:${port}/api/phonk/presets`);
     const phonkJson = await phonkRes.json();
     assert.equal(phonkJson.ok, true);
+    assert.ok(phonkJson.minDurationSec >= 160, 'Minimum studio song duration must be >= 160s');
     const genreIds = phonkJson.genres.map((g) => g.id);
     for (const g of ['brazilian_funk', 'drift_phonk', 'phonk', 'favela', 'trap', 'jumpstyle']) {
       assert.ok(genreIds.includes(g), `Missing studio genre preset: ${g}`);
     }
+    const moodIds = phonkJson.moods.map((m) => m.id);
+    assert.ok(moodIds.includes('hypnotic'), 'Studio moods must include hypnotic');
+    const typeIds = phonkJson.types.map((t) => t.id);
+    assert.ok(typeIds.includes('crushed'), 'Studio types must include crushed');
+    assert.ok(typeIds.includes('no_batidao_cd'), 'Studio types must include no_batidao_cd');
+    const effectIds = phonkJson.effects.map((e) => e.id);
+    assert.ok(effectIds.includes('slowed'), 'Studio effects must include slowed');
 
     const htmlRes = await fetch(`http://127.0.0.1:${port}/`);
     const html = await htmlRes.text();
     assert.ok(html.includes('TEXMEX-MD'), 'Dashboard HTML must render TEXMEX-MD UI');
     assert.ok(html.includes('bh-phonk'), 'Dashboard HTML must render AI Phonk Studio UI');
-    console.log('✅ [6/6] Express Web Pairing Hub, AI Phonk Studio & /health endpoints verified');
+    assert.ok(html.includes('phonkTypeSelect'), 'Studio HTML must include Production Type selector');
+    assert.ok(html.includes('phonkEffectSelect'), 'Studio HTML must include Master Effects selector');
+    assert.ok(html.includes('phonkDurationSelect'), 'Studio HTML must include 160s+ Duration selector');
+    assert.ok(html.includes('phonkVocalModeSelect'), 'Studio HTML must include Smart Vocal Alignment / No Batidao selector');
+    console.log('✅ [6/6] Express Web Pairing Hub, 160s+ AI Phonk & No Batidão Studio & /health endpoints verified');
   } finally {
     srv.close();
   }

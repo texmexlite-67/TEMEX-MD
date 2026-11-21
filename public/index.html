@@ -509,23 +509,23 @@ textarea.in{font-family:var(--mono);font-size:11.5px;min-height:78px;resize:vert
       </div>
     </div>
 
-    <!-- PANE 2B: AI PHONK & 2020s BRAZILIAN FUNK STUDIO -->
+    <!-- PANE 2B: AI PHONK & 2020s BRAZILIAN FUNK STUDIO (160s+ CD MASTER) -->
     <div class="bh-pane" id="bh-phonk">
       <div class="bh-grid">
         <div class="bh-card" style="grid-column:1 / -1;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
             <div>
-              <h4 style="margin:0;">🎵 AI Phonk & 2020s Brazilian Funk Studio (Kits · AI Vocals · Anime Visualizer)</h4>
-              <p style="margin:4px 0 0;">Choose your <b>Genre Kit, BPM, Mood & Prompt</b> (or use <b>Guided Prompt Setup</b>), enhance with AI, preview on the live Anime Visualizer, and export consistent <b>MP4 + MP3 + Anime Theme</b>.</p>
+              <h4 style="margin:0;">🎵 AI Phonk & "No Batidão" 160s+ Studio (Hypnotic · Crushed · Slowed · Smart Vocals)</h4>
+              <p style="margin:4px 0 0;">Produce full <b>160s–240s multi-act CD songs</b> with <b>Genre Kits, Hypnotic Mood, Crushed Type, Slowed + Reverb Effects</b> & <b>Smart Beat-Aligned Vocals</b> (auto-forces best alt vocal engine or switches to <b>CD "No Batidão" Instrumental</b> if unaligned).</p>
             </div>
-            <button class="btn" type="button" id="phonkAskWizardBtn">💬 Guided Setup (Ask BPM · Genre · Mood)</button>
+            <button class="btn" type="button" id="phonkAskWizardBtn">💬 Guided Setup (BPM · Genre · Mood · Type · FX)</button>
           </div>
 
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:10px;margin-top:10px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:10px;">
             <div>
               <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:var(--mono);">1. STUDIO KIT / GENRE</label>
               <select id="phonkGenreSelect" class="in" style="width:100%;">
-                <option value="brazilian_funk" data-bpm="130">🇧🇷 Brazilian Funk 2020s (Automotivo Bass)</option>
+                <option value="brazilian_funk" data-bpm="130">🇧🇷 Brazilian Funk 2020s (No Batidão Bass)</option>
                 <option value="drift_phonk" data-bpm="160">🏎️ Drift Phonk (808 Cowbell)</option>
                 <option value="phonk" data-bpm="140">🌑 Classic Street Phonk (Reese + Bell)</option>
                 <option value="favela" data-bpm="135">🔥 Favela Baile Funk (Tamborzão)</option>
@@ -545,26 +545,65 @@ textarea.in{font-family:var(--mono);font-size:11.5px;min-height:78px;resize:vert
             <div>
               <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:var(--mono);">3. TRACK MOOD & PALETTE</label>
               <select id="phonkMoodSelect" class="in" style="width:100%;">
+                <option value="hypnotic" selected>🌀 Hypnotic / Trance Batidão</option>
                 <option value="energetic">⚡ Energetic / High-Octane</option>
                 <option value="aggressive">🔥 Aggressive / Hard Overdrive</option>
                 <option value="dark">🌑 Dark Midnight / Shadow</option>
-                <option value="drift">🏎️ Hypnotic Street Drift</option>
+                <option value="drift">🏎️ Street Drift / Neon Cruise</option>
                 <option value="favela_heat">🇧🇷 Brazilian Favela Heat</option>
                 <option value="euphoric">✨ Euphoric Rave / Cyber</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:var(--mono);">4. PRODUCTION TYPE</label>
+              <select id="phonkTypeSelect" class="in" style="width:100%;">
+                <option value="no_batidao_cd" selected>💿 CD Clean / YouTube "No Batidão" Style</option>
+                <option value="crushed">💥 Crushed (Bitcrushed Krushclub Grit)</option>
+                <option value="automotivo">🔊 Automotivo (Heavy Car-Sub Clip)</option>
+                <option value="memphis_tape">📼 Memphis Tape (Lo-Fi Drift Saturation)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:var(--mono);">5. MASTER EFFECTS</label>
+              <select id="phonkEffectSelect" class="in" style="width:100%;">
+                <option value="none" selected>🎛️ Original CD Master (1.00×)</option>
+                <option value="slowed">🌊 Slowed + Reverb (0.84× Pitch & Hall)</option>
+                <option value="sped_up">⚡ Sped Up / Nightcore Drift (1.14×)</option>
+                <option value="bass_boost">🔊 Extreme Sub-Bass Boost</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:var(--mono);">6. SONG DURATION (160s+ CD LENGTH)</label>
+              <select id="phonkDurationSelect" class="in" style="width:100%;">
+                <option value="168" selected>⏱️ 168s (02:48 — Full CD Single)</option>
+                <option value="185">⏱️ 185s (03:05 — Extended Club Mix)</option>
+                <option value="210">⏱️ 210s (03:30 — Automotivo Anthem)</option>
+                <option value="240">⏱️ 240s (04:00 — Festival Extended Master)</option>
               </select>
             </div>
           </div>
 
           <div style="margin-top:10px;">
-            <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:var(--mono);">4. MUSIC & ANIME THEME PROMPT (AI ENHANCED)</label>
-            <textarea id="phonkPromptInput" class="in" style="min-height:62px;" placeholder="Describe vibe, bassline & anime visual theme (e.g. Midnight neon street drift in Rio with heavy 2020s Brazilian bass melodies & energetic rhythm)..."></textarea>
+            <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:var(--mono);">7. MUSIC & ANIME THEME PROMPT (AI ENHANCED)</label>
+            <textarea id="phonkPromptInput" class="in" style="min-height:58px;" placeholder="Describe vibe, bassline & anime visual theme (e.g. Hypnotic midnight street drift in Rio in YouTube No Batidão style with deep 2020s Brazilian bass melodies)..."></textarea>
           </div>
 
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:9px;">
-            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#dff7f2;cursor:pointer;">
-              <input type="checkbox" id="phonkVocalsCheck" checked /> 🎙️ <b>Include Energetic AI Vocals & Beat Chops in Kit</b>
-            </label>
-            <input type="text" id="phonkVocalInput" class="in" style="flex:1;min-width:220px;" placeholder="Optional custom AI vocal chant (leave blank for AI auto-written genre chant)..." />
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;align-items:end;margin-top:9px;">
+            <div>
+              <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:var(--mono);">8. SMART VOCAL ALIGNMENT & "NO BATIDÃO" ENGINE</label>
+              <select id="phonkVocalModeSelect" class="in" style="width:100%;">
+                <option value="auto_aligned" selected>🎯 Auto Beat-Align (Force Alt Best Vocal — Ignore Unaligned → CD No Batidão)</option>
+                <option value="force_alt_vocal">🎙️ Force Alternative Best Vocal Generator (TikTok Studio / Alt HD)</option>
+                <option value="cd_no_batidao">💿 Pure CD Instrumental — YouTube "No Batidão" Song Style (Ignore Vocals)</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:var(--mono);">OPTIONAL VOCAL HOOK CHANT (BEAT-LOCKED)</label>
+              <input type="text" id="phonkVocalInput" class="in" style="width:100%;" placeholder="Short rhythmic chant (or leave blank for AI tight beat chant)..." />
+            </div>
           </div>
 
           <div id="phonkAiBlueprintBox" style="display:none;margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(0,245,160,.07);border:1px solid var(--stroke);font-size:11.5px;color:#dff7f2;white-space:pre-wrap;"></div>
@@ -1888,17 +1927,22 @@ const BotBridge=(()=>{
 
         // HUD Title & Telemetry
         if (currentPhonkTrack) {
+          const effBpm = currentPhonkTrack.effectiveBpm || currentPhonkTrack.bpm;
           ctx.fillStyle = primary;
-          ctx.font = 'bold 17px monospace';
-          ctx.fillText(`⟁ TEXMEX-MD // AI PHONK STUDIO  ·  ${currentPhonkTrack.bpm} BPM`, 54, 58);
+          ctx.font = 'bold 16px monospace';
+          ctx.fillText(`⟁ TEXMEX-MD // 160s+ PHONK STUDIO  ·  ${effBpm} BPM  ·  ${currentPhonkTrack.durationSec}s`, 54, 54);
 
           ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 40px sans-serif';
-          ctx.fillText(currentPhonkTrack.title, 52, 112);
+          ctx.font = 'bold 36px sans-serif';
+          ctx.fillText(currentPhonkTrack.title, 52, 102);
 
           ctx.fillStyle = secondary;
-          ctx.font = 'bold 18px sans-serif';
-          ctx.fillText(`${currentPhonkTrack.album}  ·  ${currentPhonkTrack.moodLabel.toUpperCase()}`, 54, 144);
+          ctx.font = 'bold 17px sans-serif';
+          ctx.fillText(`${currentPhonkTrack.album}  ·  ${currentPhonkTrack.moodLabel.toUpperCase()}`, 54, 132);
+
+          ctx.fillStyle = 'rgba(225,245,242,0.88)';
+          ctx.font = '14px monospace';
+          ctx.fillText(`${currentPhonkTrack.typeLabel || 'CD Master'}  ·  ${currentPhonkTrack.effectLabel || 'Original'}  ·  ${currentPhonkTrack.vocalModeUsed || 'CD Instrumental'}`, 54, 158);
         }
 
         // Glass Visualizer Stage Box
@@ -1974,9 +2018,11 @@ const BotBridge=(()=>{
         bpm: Number($('#phonkBpmInput').value || 130),
         genre: $('#phonkGenreSelect').value,
         mood: $('#phonkMoodSelect').value,
+        type: $('#phonkTypeSelect').value,
+        effect: $('#phonkEffectSelect').value,
         customVocals: $('#phonkVocalInput').value.trim()
       };
-      toast('AI Producer enhancing prompt, bassline & vocals...');
+      toast('AI Producer enhancing 160s+ arrangement, bassline & vocals...');
       const r = await fetch('./api/phonk/enhance', {
         method: 'POST', headers: dashHeaders(), body: JSON.stringify(body)
       });
@@ -1984,15 +2030,18 @@ const BotBridge=(()=>{
       if (!d.ok) { toast(d.error || 'AI enhance failed'); return null; }
       const bp = d.blueprint;
       $('#phonkPromptInput').value = bp.enhancedPrompt;
-      if (!$('#phonkVocalInput').value.trim()) $('#phonkVocalInput').value = bp.vocalScript;
+      if (!$('#phonkVocalInput').value.trim() && $('#phonkVocalModeSelect').value !== 'cd_no_batidao') {
+        $('#phonkVocalInput').value = bp.vocalScript;
+      }
       const box = $('#phonkAiBlueprintBox');
       box.style.display = 'block';
       box.textContent =
-        `✨ AI Studio Blueprint Ready:\n` +
+        `✨ AI 160s+ Studio Blueprint Ready:\n` +
         `• Track: ${bp.title}  |  Album: ${bp.album}\n` +
         `• Kit: ${bp.genreLabel} @ ${bp.bpm} BPM  |  Mood: ${bp.moodLabel}\n` +
-        `• AI Vocal Hook: "${bp.vocalScript}"`;
-      toast('AI prompt & arrangement enhanced!');
+        `• Type: ${bp.typeLabel}  |  Effect: ${bp.effectLabel}\n` +
+        `• Beat-Locked Vocal Hook: "${bp.vocalScript}" (or auto-fallback to YouTube "No Batidão" CD Instrumental)`;
+      toast('AI prompt & 160s+ arrangement enhanced!');
       return bp;
     };
     $('#phonkEnhanceBtn').onclick = runPhonkEnhance;
@@ -2000,7 +2049,9 @@ const BotBridge=(()=>{
     const runPhonkGenerate = async (pushToStatus = false) => {
       const prog = $('#phonkProgressLine');
       prog.style.display = 'block';
-      prog.textContent = '⏳ [1/3] AI Producer enhancing prompt, 2020s bass melody, drums & AI vocal chops...';
+      const reqDur = Number($('#phonkDurationSelect').value || 168);
+      const vocalMode = $('#phonkVocalModeSelect').value || 'auto_aligned';
+      prog.textContent = `⏳ [1/3] AI Producer building ${reqDur}s+ 8-act song, verifying vocal beat-alignment & No Batidão CD synth...`;
       $('#phonkGenerateBtn').disabled = true;
       $('#phonkGenPushBtn').disabled = true;
 
@@ -2010,14 +2061,18 @@ const BotBridge=(()=>{
           bpm: Number($('#phonkBpmInput').value || 130),
           genre: $('#phonkGenreSelect').value,
           mood: $('#phonkMoodSelect').value,
-          includeVocals: $('#phonkVocalsCheck').checked,
+          type: $('#phonkTypeSelect').value,
+          effect: $('#phonkEffectSelect').value,
+          durationSec: reqDur,
+          vocalMode,
+          includeVocals: vocalMode !== 'cd_no_batidao',
           customVocals: $('#phonkVocalInput').value.trim(),
           pushToStatus
         };
 
         const timerMsg = setTimeout(() => {
-          prog.textContent = '⏳ [2/3] Matching Anime Theme Artwork & rendering consistent H.264 MP4 Visualizer + 320kbps MP3...';
-        }, 3200);
+          prog.textContent = `⏳ [2/3] Mastering ${reqDur}s+ audio (${$('#phonkTypeSelect').value} · ${$('#phonkEffectSelect').value}) & rendering full Anime Visualizer MP4 + 320kbps MP3...`;
+        }, 4500);
 
         const r = await fetch('./api/phonk/generate', {
           method: 'POST', headers: dashHeaders(), body: JSON.stringify(body)
@@ -2032,14 +2087,17 @@ const BotBridge=(()=>{
 
         const tr = d.track;
         currentPhonkTrack = tr;
-        prog.textContent = `✅ Rendered "${tr.title}" (${tr.durationSec}s · ${tr.bpm} BPM)${d.pushedToStatus ? ` · Pushed to Status (${d.recipientsCount} contacts)!` : '!'}`;
+        const mins = Math.floor(tr.durationSec / 60);
+        const secs = String(Math.round(tr.durationSec % 60)).padStart(2, '0');
+        prog.textContent = `✅ Rendered "${tr.title}" (${tr.durationSec}s / 0${mins}:${secs} · ${tr.effectiveBpm || tr.bpm} BPM · ${tr.vocalModeUsed})${d.pushedToStatus ? ` · Pushed to Status (${d.recipientsCount} contacts)!` : '!'}`;
 
         $('#phonkStageCard').style.display = 'block';
-        $('#phonkOutTitle').textContent = `🎵 ${tr.title}`;
-        $('#phonkOutMeta').textContent = `${tr.album} · ${tr.bpm} BPM · ${tr.genreLabel} · ${tr.moodLabel}`;
+        $('#phonkOutTitle').textContent = `🎵 ${tr.title} (${tr.durationSec}s / 0${mins}:${secs})`;
+        $('#phonkOutMeta').textContent = `${tr.album} · ${tr.effectiveBpm || tr.bpm} BPM · ${tr.genreLabel} · ${tr.moodLabel} · ${tr.typeLabel} · ${tr.effectLabel}`;
         $('#phonkOutDetails').innerHTML =
           `<b>✨ AI Production Direction:</b> ${tr.enhancedPrompt}<br/>` +
-          (tr.vocalScript ? `<b>🎙️ AI Kit Vocals:</b> "${tr.vocalScript}"` : `<b>🎛️ Mix:</b> Instrumental Club Master`);
+          `<b>🎙️ Smart Vocal / Instrumental Status:</b> <span style="color:var(--accent)">${tr.vocalModeUsed}</span>` +
+          (tr.vocalUsed && tr.vocalScript ? ` — <i>"${tr.vocalScript}"</i>` : ` — <i>3-Formant "No Batidão" Lead Synth + 2020s Sub-Bass Melodies Active</i>`);
 
         // Set consistent download hrefs
         $('#dlPhonkMp4Link').href = tr.urls.mp4Download;
@@ -2060,7 +2118,7 @@ const BotBridge=(()=>{
         ensureVisAnalyser();
         startLiveCanvasVisualizer();
         aud.play().catch(() => {});
-        toast('Phonk track + Anime Visualizer ready!');
+        toast(`160s+ song ready (${tr.durationSec}s)!`);
       } catch (err) {
         prog.textContent = `⚠️ Error: ${err.message}`;
       } finally {
@@ -2095,10 +2153,10 @@ const BotBridge=(()=>{
       }, 650);
     };
 
-    // Guided Prompt Wizard that explicitly asks the user for BPM, Genre, Mood & Prompt
+    // Guided Prompt Wizard that explicitly asks BPM, Genre, Mood, Type, Effect & Prompt
     $('#phonkAskWizardBtn').onclick = () => {
       const g = prompt(
-        '1/4 — Choose Genre Kit:\n(brazilian_funk, drift_phonk, phonk, favela, trap, jumpstyle)',
+        '1/6 — Choose Genre Kit:\n(brazilian_funk, drift_phonk, phonk, favela, trap, jumpstyle)',
         $('#phonkGenreSelect').value || 'brazilian_funk'
       );
       if (g === null) return;
@@ -2108,13 +2166,13 @@ const BotBridge=(()=>{
       }
 
       const defaultBpm = $('#phonkGenreSelect').selectedOptions[0]?.dataset?.bpm || '130';
-      const b = prompt('2/4 — Enter Tempo (BPM, 90–190):', defaultBpm);
+      const b = prompt('2/6 — Enter Tempo (BPM, 90–190):', defaultBpm);
       if (b === null) return;
       syncPhonkBpm(b);
 
       const m = prompt(
-        '3/4 — Choose Mood:\n(energetic, aggressive, dark, drift, favela_heat, euphoric)',
-        $('#phonkMoodSelect').value || 'energetic'
+        '3/6 — Choose Mood:\n(hypnotic, energetic, aggressive, dark, drift, favela_heat, euphoric)',
+        $('#phonkMoodSelect').value || 'hypnotic'
       );
       if (m === null) return;
       const mNorm = m.trim().toLowerCase();
@@ -2122,9 +2180,29 @@ const BotBridge=(()=>{
         $('#phonkMoodSelect').value = mNorm;
       }
 
+      const tp = prompt(
+        '4/6 — Choose Production Type:\n(no_batidao_cd, crushed, automotivo, memphis_tape)',
+        $('#phonkTypeSelect').value || 'no_batidao_cd'
+      );
+      if (tp === null) return;
+      const tpNorm = tp.trim().toLowerCase();
+      if ([...$('#phonkTypeSelect').options].some((o) => o.value === tpNorm)) {
+        $('#phonkTypeSelect').value = tpNorm;
+      }
+
+      const fx = prompt(
+        '5/6 — Choose Master Effect:\n(none, slowed, sped_up, bass_boost)',
+        $('#phonkEffectSelect').value || 'none'
+      );
+      if (fx === null) return;
+      const fxNorm = fx.trim().toLowerCase();
+      if ([...$('#phonkEffectSelect').options].some((o) => o.value === fxNorm)) {
+        $('#phonkEffectSelect').value = fxNorm;
+      }
+
       const p = prompt(
-        '4/4 — Describe your Music & Anime Visualizer Theme Prompt (AI will improve quality):',
-        $('#phonkPromptInput').value || 'Midnight neon street race with heavy 2020s bass melody & energetic vocals'
+        '6/6 — Describe your 160s+ Music & Anime Visualizer Theme Prompt:',
+        $('#phonkPromptInput').value || 'Hypnotic midnight neon street drift in Rio in YouTube No Batidao song style'
       );
       if (p === null) return;
       $('#phonkPromptInput').value = p;

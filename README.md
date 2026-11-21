@@ -13,17 +13,35 @@
 - **VPS & Local:** Ubuntu/Debian VPS with PM2 (`ecosystem.config.cjs`), Windows/macOS/Linux, Android **Termux**
 
 ---
-[![Deploy on RENDER
 
-https://temex-md.onrender.com/
+## ✨ Key Capabilities
 
-
-
- [mins] [category]`, `.statusaudience`
+1. **4-Way Authentication & Portable Sessions**
+   - **Web Pairing Dashboard (`/`):** Generate an 8-character WhatsApp Phone Pairing Code (including branded `TEXM-EXMD` code!), scan live auto-refreshing QR codes, toggle bot settings, view live logs, and export/import `TEXMEX-MD~...` sessions directly in your browser.
+   - **Portable `SESSION_ID` (`TEXMEX-MD~...`):** Compressed gzip+base64 credential string so stateless hosts (Heroku, Render, Koyeb, Railway) restore your session instantly on every restart.
+   - **Headless ENV Pairing (`PAIRING_NUMBER`):** Set `PAIRING_NUMBER=2547XXXXXXXX` in env vars to print your 8-digit pairing code directly in server logs.
+   - **Terminal QR:** Compact UTF-8 QR code rendered in console logs.
+2. **Adaptive Runtime Engine (`lib/env.js`)**
+   - Automatically resolves `PORT` → `SERVER_PORT` → `7860` (HuggingFace) → `3000`.
+   - Automatically falls back to writable temp storage on read-only container root filesystems.
+   - Hybrid Sticker Engine: uses fast prebuilt **Sharp** binaries first and seamlessly falls back to **FFmpeg**, stamping `Pack: TEXMEX-MD | Author: TEXMEX-MD` EXIF metadata via pure-JS `node-webpmux`.
+   - Full Baileys v7 **LID (`@lid`) + Phone Number (`@s.whatsapp.net`)** compatibility in groups and DMs.
+3. **165 Built-In Commands (330+ Aliases) Across 11 Modular Plugins + 3D BAZE WebGL Hub & AI Phonk Studio**
+   - **Core, Bio & Public Tunnel (`plugins/core.js`):** `.menu` (Sci-Fi Nexus + Anime AI DP), `.alive`, `.botdp`, `.ping`, `.runtime`, `.owner`, `.repo`, `.sysinfo`, `.web`, `.ports`, `.tunnel` / `.publicurl` / `.shareweb` (Official Cloudflare All-Devices HTTPS URL)
+   - **AI Phonk & 2020s Brazilian Funk Studio (`plugins/phonk.js` + `lib/phonk-studio.js`):** `.phonk`, `.brazilianfunk` / `.automotivo`, `.driftphonk` / `.cowbell`, `.favela`, `.trapbeat`, `.jumpstyle`, `.pushphonk` — prompts for **BPM, Genre, Mood & Concept**, enhances with AI, synthesizes 2020s bass melodies + energetic rhythms + AI vocal chops across 6 genre kits, pairs a theme-matched **HD Anime Background**, and exports consistent **1280×720 MP4 Visualizer + 320kbps MP3**!
+   - **AI Neural Voice & Audio Status Studio (`plugins/voice.js`):** `.tts` / `.say` / `.speak`, `.bibleaudio`, `.prayeraudio`, `.motivateaudio`, `.quoteaudio`, `.psychaudio`, `.voiceai`, `.pushvoice` (Voice Note directly to WhatsApp Status), `.setvoice` (Andrew, Aria, Kenyan Chilemba/Asilia, British Ryan, Swahili Rafiki), `.autovoice <on|off>`
+   - **Downloader Hub (`plugins/downloader.js`):** `.ytmp4` / `.youtube` (YouTube Video Downloader), `.ytmp3` / `.play` (YouTube Audio), `.instagram` / `.ig`, `.facebook` / `.fb`, `.tiktok` / `.tt` (No-Watermark HD), `.mediafire` / `.mf`, `.img` (High-Res Image Downloader), `.video` / `.videod` (Universal Video Downloader)
+   - **Group Controller (`plugins/group.js`):** `.gclink`, `.tag`, `.tagall`, `.hidetag`, `.adminstag`, `.chatmute` (`.chat mute`), `.chatunmute` (`.chat unmute`), `.pin`, `.unpin`, `.kick` (`.kickmember`), `.add` (`.addmember`), `.invitemember`, `.gstatusmention` (Group Status Mention), `.gprofile`, `.gabout`, `.antilink`, `.antilinkwarn`, `.antispam`, `.antistatusmention`, `.antibadword`, `.addword`, `.delword`, `.welcome`, `.goodbye`, `.setwelcome`, `.setgoodbye`, `.warn`, `.resetwarn`, `.warnings`, `.revoke`, `.ginfo`, `.setgname`, `.gsettings`, `.approveall`, `.poll`
+   - **Mind, Spirit, Bible & 10 Specialized Prayers (`plugins/mind_spirit.js`):** `.motivate`, `.quote`, `.psychology`, `.affirm`, `.advice`, `.bible` (live Scripture lookup), `.spiritual`, `.prayer`, `.morningprayer`, `.nightprayer`, `.fastingprayer`, `.warfareprayer`, `.healingprayer`, `.breakthroughprayer`, `.protectionprayer`, `.examprayer`, `.familyprayer`, `.thanksgivingprayer`, `.prayerlist`
+   - **Push to Status Hub (`plugins/status.js`):** `.pushstatus` (`.tostatus`, `.poststatus`, `.upstatus`, `.push to status` — push any replied image/video/audio/text or generated category to WhatsApp Status), `.pushbible`, `.pushprayer`, `.pushmotivate`, `.pushpsych`, `.pushquote`, `.autostatuspush <on|off> [mins] [category]`, `.statusaudience`
    - **Stickers, ViewOnce & Status (`plugins/media.js`):** `.sticker` (`.s`), `.take`, `.toimg`, `.vv` (Unlock View-Once), `.vvdm` (Silent View-Once to DM), `.save` (Status Saver), `.getpp`
    - **Cyber Utilities (`plugins/tools.js`):** `.tr` (Translate), `.weather`, `.define`, `.wiki`, `.calc`, `.qr`, `.short`, `.github`, `.currency`, `.base64`, `.time`, `.quoted`
-   - **AI, Anime & Fun (`plugins/ai_fun.js`)   
+   - **AI, Anime & Fun (`plugins/ai_fun.js`):** `.ai` / `.gpt` / `.texmex` (with rolling conversation memory), `.aiclear`, `.chatbot <off|dm|group|all>`, `.summarize`, `.explain`, `.code`, `.imagine` / `.aiimg`, `.animeai` / `.animedp`, `.waifu`, `.neko`, `.fancy`, `.joke`, `.fact`, `.truth`, `.dare`, `.8ball`, `.flip`, `.roll`
+   - **Owner Matrix, Force-Extended Bold Bio & CD (`plugins/owner.js`):** `.setbio`, `.syncbio`, `.resetbio`, `.autobiolink`, `.cd` (Command Cooldown & Deploy Guide), `.anticall <on|off|reject|block>`, `.setbotdp`, `.fullpp`, `.delbotpp`, `.menuimage`, `.mode <public|private>`, `.setprefix`, `.multiprefix`, `.autostatus`, `.autoreactstatus`, `.antidelete <off|chat|dm>`, `.autoread`, `.autotyping`, `.autorecording`, `.addsudo`, `.delsudo`, `.listsudo`, `.block`, `.unblock`, `.join`, `.leave`, `.getsession`, `.reload`, `.restart`
+4. **Automated GitHub Actions CI/CD (`.github/workflows/ci-cd.yml`)**
+   - Automatically runs `npm run doctor` & `npm test`, builds and pushes multi-platform container images (`ghcr.io/texmexlite-67/temex-md:latest`), and triggers optional cloud deploy webhooks (`DEPLOY_WEBHOOK_URL`) on every push to `main`.
 
+---
 
 ## 🚀 Quick Start (Local / VPS / Termux)
 
@@ -79,5 +97,30 @@ npm run pm2:logs
 bash scripts/termux-setup.sh
 npm start
 ```
+
+---
+
+## ⚙️ Environment Variables Reference
+
+| Variable | Default | Description |
+|---|---|---|
+| `BOT_NAME` | `TEXMEX-MD` | Bot display name across menus, stickers & dashboard |
+| `OWNER_NAME` | `TEXMEX-MD` | Owner display name in menus & VCard |
+| `OWNER_NUMBER` | *(empty)* | Owner WhatsApp number (digits only, e.g. `254712345678`) |
+| `SUDO_NUMBERS` | *(empty)* | Comma-separated extra admin numbers |
+| `PREFIX` | `.` | Primary command prefix |
+| `MULTI_PREFIX` | `false` | Accept `.` `!` `/` `#` `$` `-` simultaneously |
+| `MODE` | `public` | `public` (everyone) or `private` (owner & sudo only) |
+| `SESSION_ID` | *(empty)* | Portable `TEXMEX-MD~...` credential string |
+| `PAIRING_NUMBER` | *(empty)* | Phone number for automatic console pairing code on startup |
+| `USE_CUSTOM_PAIRING_CODE` | `false` | Request branded `TEXM-EXMD` 8-char pairing code |
+| `ANTI_DELETE` | `dm` | Recover deleted messages: `dm`, `chat`, or `off` |
+| `AUTO_STATUS_VIEW` | `true` | Auto-view contacts' WhatsApp Status broadcasts |
+| `AUTO_STATUS_REACT` | `false` | Auto-react to WhatsApp Statuses with `STATUS_REACT_EMOJI` |
+| `ANTI_CALL` | `off` | Incoming call handling: `off`, `reject`, or `block` |
+| `DASHBOARD_KEY` | *(empty)* | Optional password locking sensitive Web Dashboard actions |
+| `OPENAI_API_KEY` / `GROQ_API_KEY` / `GEMINI_API_KEY` | *(empty)* | Optional AI keys (falls back to built-in zero-key AI if unset) |
+
+---
 
 *Built with precision for **TEXMEX-MD** · Universal Multi-Device WhatsApp Bot.*

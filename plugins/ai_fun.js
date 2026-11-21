@@ -332,13 +332,23 @@ export default [
     usage: '.waifu',
     react: '🌸',
     async execute({ sock, m, config }) {
-      const { data } = await axios.get('https://api.waifu.pics/sfw/waifu', {
-        timeout: 12000
-      });
-      if (!data?.url) return m.reply('⚠️ Could not fetch anime image right now.');
+      let imgUrl = '';
+      try {
+        const { data } = await axios.get('https://nekos.best/api/v2/waifu', { timeout: 9000 });
+        imgUrl = data?.results?.[0]?.url || '';
+      } catch {
+        // Fallback to pic.re SFW anime illustration API
+      }
+      if (!imgUrl) {
+        const { data } = await axios.get('https://pic.re/image.json', { timeout: 9000 });
+        if (data?.file_url) {
+          imgUrl = data.file_url.startsWith('http') ? data.file_url : `https://${data.file_url}`;
+        }
+      }
+      if (!imgUrl) return m.reply('⚠️ Could not fetch anime image right now.');
       await sock.sendMessage(
         m.chat,
-        { image: { url: data.url }, caption: `🌸 *Anime Art · ${config.botName}*` },
+        { image: { url: imgUrl }, caption: `🌸 *Anime Art · ${config.botName}*` },
         { quoted: m.raw }
       );
     }
@@ -351,13 +361,19 @@ export default [
     usage: '.neko',
     react: '🐱',
     async execute({ sock, m, config }) {
-      const { data } = await axios.get('https://api.waifu.pics/sfw/neko', {
-        timeout: 12000
-      });
-      if (!data?.url) return m.reply('⚠️ Could not fetch neko image right now.');
+      let imgUrl = '';
+      try {
+        const { data } = await axios.get('https://nekos.best/api/v2/neko', { timeout: 9000 });
+        imgUrl = data?.results?.[0]?.url || '';
+      } catch {
+        // Fallback to nekos.best kitsune
+        const { data } = await axios.get('https://nekos.best/api/v2/kitsune', { timeout: 9000 });
+        imgUrl = data?.results?.[0]?.url || '';
+      }
+      if (!imgUrl) return m.reply('⚠️ Could not fetch neko image right now.');
       await sock.sendMessage(
         m.chat,
-        { image: { url: data.url }, caption: `🐱 *Neko Anime · ${config.botName}*` },
+        { image: { url: imgUrl }, caption: `🐱 *Neko Anime · ${config.botName}*` },
         { quoted: m.raw }
       );
     }
