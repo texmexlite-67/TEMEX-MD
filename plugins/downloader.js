@@ -2,12 +2,17 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import axios from 'axios';
 import yts from 'yt-search';
 import vreden from '@vreden/youtube_scraper';
 import ruhend from 'ruhend-scraper';
 import * as sdl from 'social-dl';
+import { getFfmpegPath } from '../lib/env.js';
 import { sciFiCard, sciFiHeader, DEV_SIGNATURE } from '../lib/style.js';
+
+const execFileAsync = promisify(execFile);
 
 const YT_URL_REGEX = /(?:youtube\.com\/(?:watch\?v=|shorts\/|live\/)|youtu\.be\/)([0-9A-Za-z_-]{11})/i;
 
@@ -42,6 +47,88 @@ async function resolveYouTubeTarget(queryOrUrl) {
     author: top.author?.name || 'YouTube',
     thumbnail: top.thumbnail
   };
+}
+
+function sanitizeFileName(name) {
+  const cleaned = String(name || 'video')
+    .replace(/[\\/:*?"<>|\r\n\t]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80);
+  return cleaned || 'video';
+}
+
+/** Resolve a scraper result (CDN URL or Buffer) into a real Buffer. */
+async function resolveMediaBuffer(media) {
+  if (media?.type === 'buffer' && Buffer.isBuffer(media.buffer)) return media.buffer;
+  if (!media?.url) throw new Error('No download URL was returned by the scraper.');
+  const { data } = await axios.get(media.url, {
+    responseType: 'arraybuffer',
+    timeout: 90000,
+    maxContentLength: 200 * 1024 * 1024,
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36' }
+  });
+  const buf = Buffer.from(data);
+  if (buf.length < 8192) throw new Error('Downloaded video is empty or too small.');
+  return buf;
+}
+
+/**
+ * Some 360p scraper links serve fragmented/WebM data that WhatsApp cannot
+ * preview. Re-mux to a baseline H.264 + AAC MP4 with faststart so the video
+ * renders a proper thumbnail instead of arriving "invisible".
+ */
+async function normalizeMp4Buffer(inputBuf) {
+  const id = crypto.randomBytes(6).toString('hex');
+  const inFile = path.join(os.tmpdir(), `texmex-yt-in-${id}.bin`);
+  const outFile = path.join(os.tmpdir(), `texmex-yt-out-${id}.mp4`);
+  fs.writeFileSync(inFile, inputBuf);
+  try {
+    await execFileAsync(
+      getFfmpegPath(),
+      [
+        '-y', '-v', 'error', '-i', inFile,
+        '-map', '0:v:0', '-map', '0:a:0?',
+        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '26',
+        '-pix_fmt', 'yuv420p', '-profile:v', 'baseline', '-level', '3.0',
+        '-c:a', 'aac', '-b:a', '128k',
+        '-movflags', '+faststart', '-f', 'mp4', outFile
+      ],
+      { timeout: 180000, maxBuffer: 4 * 1024 * 1024 }
+    );
+    const normalized = fs.readFileSync(outFile);
+    return normalized.length > 8192 ? normalized : inputBuf;
+  } catch {
+    return inputBuf;
+  } finally {
+    fs.rmSync(inFile, { force: true });
+    fs.rmSync(outFile, { force: true });
+  }
+}
+
+/** Grab a JPEG frame for WhatsApp's video preview card. */
+async function makeVideoThumbnail(videoBuf) {
+  const id = crypto.randomBytes(6).toString('hex');
+  const inFile = path.join(os.tmpdir(), `texmex-thumb-${id}.mp4`);
+  fs.writeFileSync(inFile, videoBuf);
+  try {
+    const attempts = ['1', '0'];
+    for (const seek of attempts) {
+      try {
+        const { stdout } = await execFileAsync(
+          getFfmpegPath(),
+          ['-y', '-v', 'error', '-ss', seek, '-i', inFile, '-frames:v', '1', '-q:v', '3', '-f', 'image2', '-'],
+          { encoding: 'buffer', maxBuffer: 8 * 1024 * 1024, timeout: 30000 }
+        );
+        if (Buffer.isBuffer(stdout) && stdout.length > 1024) return stdout;
+      } catch {
+        // try next seek position
+      }
+    }
+    return null;
+  } finally {
+    fs.rmSync(inFile, { force: true });
+  }
 }
 
 async function fetchYouTubeMp4(videoUrl) {
@@ -240,16 +327,34 @@ export default [
         `🎞️ *Quality:* ${media.quality || '360p'}`
       ]);
 
-      await sock.sendMessage(
-        m.chat,
-        {
-          video: media.type === 'buffer' ? media.buffer : { url: media.url },
-          mimetype: 'video/mp4',
-          fileName: `${meta.title}.mp4`,
-          caption
-        },
-        { quoted: m.raw }
-      );
+      let videoBuf;
+      try {
+        const rawBuf = await resolveMediaBuffer(media);
+        videoBuf = await normalizeMp4Buffer(rawBuf);
+      } catch (err) {
+        return m.reply(`⚠️ Could not prepare the MP4: ${err?.message || err}`);
+      }
+
+      const fileName = `${sanitizeFileName(meta.title)}.mp4`;
+      const thumbnail = await makeVideoThumbnail(videoBuf);
+      const payload = {
+        video: videoBuf,
+        mimetype: 'video/mp4',
+        fileName,
+        caption
+      };
+      if (thumbnail) payload.jpegThumbnail = thumbnail;
+
+      try {
+        await sock.sendMessage(m.chat, payload, { quoted: m.raw });
+      } catch {
+        // Last resort: a proper named document is still visible and downloadable.
+        await sock.sendMessage(
+          m.chat,
+          { document: videoBuf, mimetype: 'video/mp4', fileName, caption },
+          { quoted: m.raw }
+        );
+      }
     }
   },
   {
