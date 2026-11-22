@@ -38,7 +38,7 @@
   "license": "MIT",
   "dependencies": {
     "@hapi/boom": "^10.0.1",
-    "@vreden/youtube_scraper": "^1.2.9",
+    "@hiudyy/ytdl": "^0.2.6",
     "@whiskeysockets/baileys": "^7.0.0-rc14",
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
