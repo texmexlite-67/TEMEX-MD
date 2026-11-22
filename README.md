@@ -1,11 +1,26 @@
-# ⟁ 𝗧𝗘𝗫𝗠𝗘𝗫-𝗠𝗗 // 𝗖𝗬𝗕𝗘𝗥-𝗠𝗗 𝗡𝗘𝗫𝗨𝗦 ⟁
+# 🎬 ⟁ 𝗧𝗘𝗫𝗠𝗘𝗫-𝗠𝗗 ⟁ 🎬
 
-> **Bot Name:** `TEXMEX-MD` · **Owner:** `TEXMEX-MD` · **Live Web:** [`https://temex-md.onrender.com/`](https://temex-md.onrender.com/) · **Repo:** [`https://github.com/texmexlite-67/TEMEX-MD.git`](https://github.com/texmexlite-67/TEMEX-MD.git)  
-> ⚡ **Developed by TEXMEX with ❤️ · 🌐 https://temex-md.onrender.com/**
+<div align="center">
+
+### *IN A WORLD WHERE EVERY CLOUD HAS A LIMIT... ONE BOT BREAKS THEM ALL.*
+
+**A TEXMEX PRODUCTION** · *Developed by TEXMEX with ❤️*
 
 [![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/texmexlite-67/TEMEX-MD)
 
-**TEXMEX-MD** is an all-in-one, environment-adaptive Multi-Device WhatsApp Bot engineered to run out-of-the-box on **every major cloud, container, panel, and local runtime**:
+**🌐 LIVE WEB:** [`https://temex-md.onrender.com/`](https://temex-md.onrender.com/) · **📽️ REPO:** [`https://github.com/texmexlite-67/TEMEX-MD.git`](https://github.com/texmexlite-67/TEMEX-MD.git)
+
+</div>
+
+---
+
+## 📽️ THE SYNOPSIS
+
+> *They said it couldn't run everywhere. Heroku. Render. Koyeb. Railway. Docker. Panels. VPS. Termux. Everywhere.*
+>
+> *One bot. Every platform. Zero compromise.*
+
+**TEXMEX-MD** is an all-in-one, environment-adaptive Multi-Device WhatsApp Bot — engineered to run out-of-the-box on **every major cloud, container, panel, and local runtime**:
 
 - **PaaS Clouds:** Heroku (`Procfile` + `app.json`), Render (`render.yaml`), Koyeb (`koyeb.yaml`), Railway (`railway.json`), Fly.io
 - **Containers & AI Spaces:** Docker (`Dockerfile` + `docker-compose.yml`), Hugging Face Spaces (auto-detects port `7860` & non-root permissions), Coolify
@@ -14,7 +29,46 @@
 
 ---
 
-## ✨ Key Capabilities
+## ⭐ STARRING
+
+### 🎙️ THE VOICE — *AI Neural Voice & Audio Status Studio* (`plugins/voice.js`)
+`.tts` / `.say` / `.speak`, `.bibleaudio`, `.prayeraudio`, `.motivateaudio`, `.quoteaudio`, `.psychaudio`, `.voiceai`, `.pushvoice` (Voice Note directly to WhatsApp Status), `.setvoice` (Andrew, Aria, Kenyan Chilemba/Asilia, British Ryan, Swahili Rafiki), `.autovoice <on|off>`
+
+### 🎧 THE SOUNDTRACK — *AI Phonk & 2020s Brazilian Funk Studio* (`plugins/phonk.js` + `lib/phonk-studio.js`)
+`.phonk`, `.brazilianfunk` / `.automotivo`, `.driftphonk` / `.cowbell`, `.favela`, `.trapbeat`, `.jumpstyle`, `.pushphonk` — prompts for **BPM, Genre, Mood & Concept**, enhances with AI, synthesizes 2020s bass melodies + energetic rhythms + AI vocal chops across 6 genre kits, pairs a theme-matched **HD Anime Background**, and exports consistent **1280×720 MP4 Visualizer + 320kbps MP3**!
+
+### 🧠 THE MIND — *AI, Anime & Fun* (`plugins/ai_fun.js`)
+`.ai` / `.gpt` / `.texmex` (with rolling conversation memory), `.aiclear`, `.chatbot <off|dm|group|all>`, `.summarize`, `.explain`, `.code`, `.imagine` / `.aiimg`, `.animeai` / `.animedp`, `.waifu`, `.neko`, `.fancy`, `.joke`, `.fact`, `.truth`, `.dare`, `.8ball`, `.flip`, `.roll`
+
+### 🛐 THE SPIRIT — *Mind, Spirit, Bible & 10 Specialized Prayers* (`plugins/mind_spirit.js`)
+`.motivate`, `.quote`, `.psychology`, `.affirm`, `.advice`, `.bible` (live Scripture lookup), `.spiritual`, `.prayer`, `.morningprayer`, `.nightprayer`, `.fastingprayer`, `.warfareprayer`, `.healingprayer`, `.breakthroughprayer`, `.protectionprayer`, `.examprayer`, `.familyprayer`, `.thanksgivingprayer`, `.prayerlist`
+
+### 📥 THE HEIST — *Downloader Hub* (`plugins/downloader.js`)
+`.ytmp4` / `.youtube` (YouTube Video Downloader), `.ytmp3` / `.play` (YouTube Audio), `.instagram` / `.ig`, `.facebook` / `.fb`, `.tiktok` / `.tt` (No-Watermark HD), `.mediafire` / `.mf`, `.img` (High-Res Image Downloader), `.video` / `.videod` (Universal Video Downloader)
+
+### 🛡️ THE ENFORCER — *Group Controller* (`plugins/group.js`)
+`.gclink`, `.tag`, `.tagall`, `.hidetag`, `.adminstag`, `.chatmute` (`.chat mute`), `.chatunmute` (`.chat unmute`), `.pin`, `.unpin`, `.kick` (`.kickmember`), `.add` (`.addmember`), `.invitemember`, `.gstatusmention` (Group Status Mention), `.gprofile`, `.gabout`, `.antilink`, `.antilinkwarn`, `.antispam`, `.antistatusmention`, `.antibadword`, `.addword`, `.delword`, `.welcome`, `.goodbye`, `.setwelcome`, `.setgoodbye`, `.warn`, `.resetwarn`, `.warnings`, `.revoke`, `.ginfo`, `.setgname`, `.gsettings`, `.approveall`, `.poll`
+
+### 📡 THE BROADCAST — *Push to Status Hub* (`plugins/status.js`)
+`.pushstatus` (`.tostatus`, `.poststatus`, `.upstatus`, `.push to status` — push any replied image/video/audio/text or generated category to WhatsApp Status), `.pushbible`, `.pushprayer`, `.pushmotivate`, `.pushpsych`, `.pushquote`, `.autostatuspush <on|off> [mins] [category]`, `.statusaudience`
+
+### 🎨 THE ARTIST — *Stickers, ViewOnce & Status* (`plugins/media.js`)
+`.sticker` (`.s`), `.take`, `.toimg`, `.vv` (Unlock View-Once), `.vvdm` (Silent View-Once to DM), `.save` (Status Saver), `.getpp`
+
+### ⚙️ THE ENGINEER — *Cyber Utilities* (`plugins/tools.js`)
+`.tr` (Translate), `.weather`, `.define`, `.wiki`, `.calc`, `.qr`, `.short`, `.github`, `.currency`, `.base64`, `.time`, `.quoted`
+
+### 👑 THE DIRECTOR — *Owner Matrix, Force-Extended Bold Bio & CD* (`plugins/owner.js`)
+`.setbio`, `.syncbio`, `.resetbio`, `.autobiolink`, `.cd` (Command Cooldown & Deploy Guide), `.anticall <on|off|reject|block>`, `.setbotdp`, `.fullpp`, `.delbotpp`, `.menuimage`, `.mode <public|private>`, `.setprefix`, `.multiprefix`, `.autostatus`, `.autoreactstatus`, `.antidelete <off|chat|dm>`, `.autoread`, `.autotyping`, `.autorecording`, `.addsudo`, `.delsudo`, `.listsudo`, `.block`, `.unblock`, `.join`, `.leave`, `.getsession`, `.reload`, `.restart`
+
+### 🌐 THE NARRATOR — *Core, Bio & Public Tunnel* (`plugins/core.js`)
+`.menu` (Sci-Fi Nexus + Anime AI DP), `.alive`, `.botdp`, `.ping`, `.runtime`, `.owner`, `.repo`, `.sysinfo`, `.web`, `.ports`, `.tunnel` / `.publicurl` / `.shareweb` (Official Cloudflare All-Devices HTTPS URL)
+
+> **165 Built-In Commands (330+ Aliases) Across 11 Modular Plugins + 3D BAZE WebGL Hub & AI Phonk Studio**
+
+---
+
+## 🎞️ SPECIAL FEATURES
 
 1. **4-Way Authentication & Portable Sessions**
    - **Web Pairing Dashboard (`/`):** Generate an 8-character WhatsApp Phone Pairing Code (including branded `TEXM-EXMD` code!), scan live auto-refreshing QR codes, toggle bot settings, view live logs, and export/import `TEXMEX-MD~...` sessions directly in your browser.
@@ -26,24 +80,12 @@
    - Automatically falls back to writable temp storage on read-only container root filesystems.
    - Hybrid Sticker Engine: uses fast prebuilt **Sharp** binaries first and seamlessly falls back to **FFmpeg**, stamping `Pack: TEXMEX-MD | Author: TEXMEX-MD` EXIF metadata via pure-JS `node-webpmux`.
    - Full Baileys v7 **LID (`@lid`) + Phone Number (`@s.whatsapp.net`)** compatibility in groups and DMs.
-3. **165 Built-In Commands (330+ Aliases) Across 11 Modular Plugins + 3D BAZE WebGL Hub & AI Phonk Studio**
-   - **Core, Bio & Public Tunnel (`plugins/core.js`):** `.menu` (Sci-Fi Nexus + Anime AI DP), `.alive`, `.botdp`, `.ping`, `.runtime`, `.owner`, `.repo`, `.sysinfo`, `.web`, `.ports`, `.tunnel` / `.publicurl` / `.shareweb` (Official Cloudflare All-Devices HTTPS URL)
-   - **AI Phonk & 2020s Brazilian Funk Studio (`plugins/phonk.js` + `lib/phonk-studio.js`):** `.phonk`, `.brazilianfunk` / `.automotivo`, `.driftphonk` / `.cowbell`, `.favela`, `.trapbeat`, `.jumpstyle`, `.pushphonk` — prompts for **BPM, Genre, Mood & Concept**, enhances with AI, synthesizes 2020s bass melodies + energetic rhythms + AI vocal chops across 6 genre kits, pairs a theme-matched **HD Anime Background**, and exports consistent **1280×720 MP4 Visualizer + 320kbps MP3**!
-   - **AI Neural Voice & Audio Status Studio (`plugins/voice.js`):** `.tts` / `.say` / `.speak`, `.bibleaudio`, `.prayeraudio`, `.motivateaudio`, `.quoteaudio`, `.psychaudio`, `.voiceai`, `.pushvoice` (Voice Note directly to WhatsApp Status), `.setvoice` (Andrew, Aria, Kenyan Chilemba/Asilia, British Ryan, Swahili Rafiki), `.autovoice <on|off>`
-   - **Downloader Hub (`plugins/downloader.js`):** `.ytmp4` / `.youtube` (YouTube Video Downloader), `.ytmp3` / `.play` (YouTube Audio), `.instagram` / `.ig`, `.facebook` / `.fb`, `.tiktok` / `.tt` (No-Watermark HD), `.mediafire` / `.mf`, `.img` (High-Res Image Downloader), `.video` / `.videod` (Universal Video Downloader)
-   - **Group Controller (`plugins/group.js`):** `.gclink`, `.tag`, `.tagall`, `.hidetag`, `.adminstag`, `.chatmute` (`.chat mute`), `.chatunmute` (`.chat unmute`), `.pin`, `.unpin`, `.kick` (`.kickmember`), `.add` (`.addmember`), `.invitemember`, `.gstatusmention` (Group Status Mention), `.gprofile`, `.gabout`, `.antilink`, `.antilinkwarn`, `.antispam`, `.antistatusmention`, `.antibadword`, `.addword`, `.delword`, `.welcome`, `.goodbye`, `.setwelcome`, `.setgoodbye`, `.warn`, `.resetwarn`, `.warnings`, `.revoke`, `.ginfo`, `.setgname`, `.gsettings`, `.approveall`, `.poll`
-   - **Mind, Spirit, Bible & 10 Specialized Prayers (`plugins/mind_spirit.js`):** `.motivate`, `.quote`, `.psychology`, `.affirm`, `.advice`, `.bible` (live Scripture lookup), `.spiritual`, `.prayer`, `.morningprayer`, `.nightprayer`, `.fastingprayer`, `.warfareprayer`, `.healingprayer`, `.breakthroughprayer`, `.protectionprayer`, `.examprayer`, `.familyprayer`, `.thanksgivingprayer`, `.prayerlist`
-   - **Push to Status Hub (`plugins/status.js`):** `.pushstatus` (`.tostatus`, `.poststatus`, `.upstatus`, `.push to status` — push any replied image/video/audio/text or generated category to WhatsApp Status), `.pushbible`, `.pushprayer`, `.pushmotivate`, `.pushpsych`, `.pushquote`, `.autostatuspush <on|off> [mins] [category]`, `.statusaudience`
-   - **Stickers, ViewOnce & Status (`plugins/media.js`):** `.sticker` (`.s`), `.take`, `.toimg`, `.vv` (Unlock View-Once), `.vvdm` (Silent View-Once to DM), `.save` (Status Saver), `.getpp`
-   - **Cyber Utilities (`plugins/tools.js`):** `.tr` (Translate), `.weather`, `.define`, `.wiki`, `.calc`, `.qr`, `.short`, `.github`, `.currency`, `.base64`, `.time`, `.quoted`
-   - **AI, Anime & Fun (`plugins/ai_fun.js`):** `.ai` / `.gpt` / `.texmex` (with rolling conversation memory), `.aiclear`, `.chatbot <off|dm|group|all>`, `.summarize`, `.explain`, `.code`, `.imagine` / `.aiimg`, `.animeai` / `.animedp`, `.waifu`, `.neko`, `.fancy`, `.joke`, `.fact`, `.truth`, `.dare`, `.8ball`, `.flip`, `.roll`
-   - **Owner Matrix, Force-Extended Bold Bio & CD (`plugins/owner.js`):** `.setbio`, `.syncbio`, `.resetbio`, `.autobiolink`, `.cd` (Command Cooldown & Deploy Guide), `.anticall <on|off|reject|block>`, `.setbotdp`, `.fullpp`, `.delbotpp`, `.menuimage`, `.mode <public|private>`, `.setprefix`, `.multiprefix`, `.autostatus`, `.autoreactstatus`, `.antidelete <off|chat|dm>`, `.autoread`, `.autotyping`, `.autorecording`, `.addsudo`, `.delsudo`, `.listsudo`, `.block`, `.unblock`, `.join`, `.leave`, `.getsession`, `.reload`, `.restart`
-4. **Automated GitHub Actions CI/CD (`.github/workflows/ci-cd.yml`)**
+3. **Automated GitHub Actions CI/CD (`.github/workflows/ci-cd.yml`)**
    - Automatically runs `npm run doctor` & `npm test`, builds and pushes multi-platform container images (`ghcr.io/texmexlite-67/temex-md:latest`), and triggers optional cloud deploy webhooks (`DEPLOY_WEBHOOK_URL`) on every push to `main`.
 
 ---
 
-## 🚀 Quick Start (Local / VPS / Termux)
+## 🚀 MISSION BRIEFING — Quick Start (Local / VPS / Termux)
 
 ```bash
 # 1. Install dependencies
@@ -63,7 +105,7 @@ Open **`http://localhost:3000`** in your browser to generate an 8-digit Pairing 
 
 ---
 
-## ☁️ Deploying Across Platforms
+## 🌍 NOW SHOWING ON — Deploying Across Platforms
 
 ### 1. Heroku
 - Uses `Procfile` and `app.json` (includes FFmpeg + Node.js buildpacks).
@@ -100,7 +142,7 @@ npm start
 
 ---
 
-## ⚙️ Environment Variables Reference
+## ⚙️ SYSTEM CONFIGURATION — Environment Variables Reference
 
 | Variable | Default | Description |
 |---|---|---|
@@ -123,4 +165,16 @@ npm start
 
 ---
 
+<div align="center">
+
+### 🎬 *THIS FILM WAS BROUGHT TO YOU BY* 🎬
+
+**TEXMEX** · *Director, Producer & Lead Developer*
+
 *Built with precision for **TEXMEX-MD** · Universal Multi-Device WhatsApp Bot.*
+
+**🌐 https://temex-md.onrender.com/**
+
+*No bots were harmed in the making of this README.*
+
+</div>
