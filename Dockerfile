@@ -6,9 +6,9 @@ ENV NODE_ENV=production \
     BOT_NAME=TEXMEX-MD \
     OWNER_NAME=TEXMEX-MD
 
-# Install FFmpeg (for animated video stickers) and CA certificates
+# Install FFmpeg (audio/video/stickers), Python3 (for yt-dlp zipimport scripts), and DejaVu fonts (Sharp HUD text)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg ca-certificates curl && \
+    apt-get install -y --no-install-recommends ffmpeg python3 fonts-dejavu-core fontconfig ca-certificates curl && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

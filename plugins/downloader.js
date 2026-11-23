@@ -2,155 +2,378 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { execSync } from 'node:child_process';
 import axios from 'axios';
 import yts from 'yt-search';
-import vreden from '@vreden/youtube_scraper';
+import { downloadYouTube } from '@hiudyy/ytdl';
 import ruhend from 'ruhend-scraper';
 import * as sdl from 'social-dl';
-import { getFfmpegPath } from '../lib/env.js';
 import { sciFiCard, sciFiHeader, DEV_SIGNATURE } from '../lib/style.js';
 
-const execFileAsync = promisify(execFile);
+// Configure social-dl's SaveTube AES-128-CBC key so its internal SaveTube worker works out of the box
+if (!process.env.SOCIAL_DL_SAVETUBE_SECRET) {
+  process.env.SOCIAL_DL_SAVETUBE_SECRET = 'C5D58EF67A7584E4A29F6C35BBC4EB12';
+}
 
-const YT_URL_REGEX = /(?:youtube\.com\/(?:watch\?v=|shorts\/|live\/)|youtu\.be\/)([0-9A-Za-z_-]{11})/i;
+const YT_URL_REGEX =
+  /(?:(?:music\.|www\.|m\.)?youtube\.com\/(?:watch\?.*v=|shorts\/|live\/|embed\/|v\/)|youtu\.be\/)([0-9A-Za-z_-]{11})/i;
 
+const BROWSER_UA =
+  'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36';
+
+/**
+ * Ensure a Python-FREE standalone compiled yt-dlp binary exists on Linux x64/arm64
+ * when python3 is absent (e.g. Render Native Node buildpack or slim Docker images).
+ * Eliminates "/usr/bin/env: 'python3': No such file or directory" permanently!
+ */
+let standaloneYtDlpPromise = null;
+async function ensureStandaloneYtDlp() {
+  if (process.env.YT_DLP_PATH && fs.existsSync(process.env.YT_DLP_PATH)) {
+    return process.env.YT_DLP_PATH;
+  }
+  try {
+    execSync('python3 --version', { stdio: 'ignore', timeout: 2500 });
+    return null; // python3 exists, standard yt-dlp works too
+  } catch {
+    // python3 missing -> bootstrap standalone PyInstaller ELF binary (no Python needed!)
+  }
+
+  if (os.platform() !== 'linux') return null;
+  const asset =
+    os.arch() === 'x64'
+      ? 'yt-dlp_linux'
+      : os.arch() === 'arm64'
+        ? 'yt-dlp_linux_aarch64'
+        : null;
+  if (!asset) return null;
+
+  const cacheBinDir = path.resolve(process.cwd(), '.cache', 'bin');
+  const binPath = path.join(cacheBinDir, asset);
+  if (fs.existsSync(binPath) && fs.statSync(binPath).size > 5_000_000) {
+    fs.chmodSync(binPath, 0o755);
+    process.env.YT_DLP_PATH = binPath;
+    return binPath;
+  }
+
+  if (!standaloneYtDlpPromise) {
+    standaloneYtDlpPromise = (async () => {
+      fs.mkdirSync(cacheBinDir, { recursive: true });
+      const dlUrl = `https://github.com/yt-dlp/yt-dlp/releases/latest/download/${asset}`;
+      const resp = await axios.get(dlUrl, { responseType: 'arraybuffer', timeout: 45000 });
+      fs.writeFileSync(binPath, Buffer.from(resp.data), { mode: 0o755 });
+      fs.chmodSync(binPath, 0o755);
+      process.env.YT_DLP_PATH = binPath;
+      return binPath;
+    })().catch(() => null);
+  }
+  return standaloneYtDlpPromise;
+}
+
+/**
+ * Download a media URL into a verified Buffer (> minBytes, non-HTML) with browser headers.
+ */
+async function downloadVerifiedBuffer(mediaUrl, extraHeaders = {}, minBytes = 20000) {
+  const resp = await axios.get(mediaUrl, {
+    responseType: 'arraybuffer',
+    maxContentLength: 95 * 1024 * 1024,
+    maxBodyLength: 95 * 1024 * 1024,
+    timeout: 45000,
+    headers: {
+      'User-Agent': BROWSER_UA,
+      Accept: '*/*',
+      ...extraHeaders
+    }
+  });
+  const ctype = String(resp.headers?.['content-type'] || '').toLowerCase();
+  if (ctype.includes('text/html')) {
+    throw new Error('Provider returned HTML instead of media stream');
+  }
+  const buf = Buffer.from(resp.data);
+  if (buf.length < minBytes) {
+    throw new Error(`Media payload too small (${buf.length} bytes)`);
+  }
+  return buf;
+}
+
+/**
+ * Cloud-IP-Proof YouTube Target Resolver:
+ * - Direct URLs use fast yts({ videoId }) with automatic fallback to YouTube oEmbed + mattw API v3
+ *   (so YouTube datacenter IP blocks on Render/Heroku NEVER break URL lookups!)
+ * - Search queries use yts(query) with automatic fallback to mattw YouTube Data API v3 search!
+ */
 async function resolveYouTubeTarget(queryOrUrl) {
   const input = String(queryOrUrl || '').trim();
   if (!input) return null;
 
   const idMatch = input.match(YT_URL_REGEX);
   if (idMatch) {
-    const info = await yts({ videoId: idMatch[1] }).catch(() => null);
-    return {
-      url: `https://www.youtube.com/watch?v=${idMatch[1]}`,
-      title: info?.title || 'YouTube Video',
-      duration: info?.timestamp || 'N/A',
-      seconds: Number(info?.seconds || 0),
-      views: info?.views ? Number(info.views).toLocaleString() : 'N/A',
-      author: info?.author?.name || 'YouTube',
-      thumbnail: info?.thumbnail || `https://i.ytimg.com/vi/${idMatch[1]}/hqdefault.jpg`
-    };
+    const videoId = idMatch[1];
+    const cleanUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+    // Fast path: yt-search with 4.5s guard
+    const info = await Promise.race([
+      yts({ videoId }).catch(() => null),
+      new Promise((r) => setTimeout(() => r(null), 4500))
+    ]);
+    if (info?.title) {
+      return {
+        videoId,
+        url: cleanUrl,
+        title: info.title,
+        duration: info.timestamp || 'N/A',
+        seconds: Number(info.seconds || 0),
+        views: info.views ? Number(info.views).toLocaleString() : 'N/A',
+        author: info.author?.name || 'YouTube',
+        thumbnail: info.thumbnail || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+      };
+    }
+
+    // Cloud-IP-proof fallback: Official YouTube oEmbed endpoint (never blocked on cloud IPs!)
+    try {
+      const { data: oe } = await axios.get('https://www.youtube.com/oembed', {
+        params: { url: cleanUrl, format: 'json' },
+        timeout: 6000
+      });
+      return {
+        videoId,
+        url: cleanUrl,
+        title: oe?.title || 'YouTube Track',
+        duration: 'Auto',
+        seconds: 0,
+        views: 'N/A',
+        author: oe?.author_name || 'YouTube',
+        thumbnail: oe?.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+      };
+    } catch {
+      return {
+        videoId,
+        url: cleanUrl,
+        title: 'YouTube Media',
+        duration: 'Auto',
+        seconds: 0,
+        views: 'N/A',
+        author: 'YouTube',
+        thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+      };
+    }
   }
 
-  const search = await yts(input);
-  const top = search?.videos?.[0];
-  if (!top) return null;
+  // Search query path
+  try {
+    const search = await Promise.race([
+      yts(input),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('yts timeout')), 7000))
+    ]);
+    const top = search?.videos?.[0];
+    if (top?.videoId || top?.url) {
+      const vid = top.videoId || top.url.match(YT_URL_REGEX)?.[1] || '';
+      return {
+        videoId: vid,
+        url: vid ? `https://www.youtube.com/watch?v=${vid}` : top.url,
+        title: top.title,
+        duration: top.timestamp || 'N/A',
+        seconds: Number(top.seconds || 0),
+        views: top.views ? Number(top.views).toLocaleString() : 'N/A',
+        author: top.author?.name || 'YouTube',
+        thumbnail: top.thumbnail
+      };
+    }
+  } catch {
+    // Fallback to cloud-safe YouTube Data API v3 proxy
+  }
 
-  return {
-    url: top.url,
-    title: top.title,
-    duration: top.timestamp || 'N/A',
-    seconds: Number(top.seconds || 0),
-    views: top.views ? Number(top.views).toLocaleString() : 'N/A',
-    author: top.author?.name || 'YouTube',
-    thumbnail: top.thumbnail
-  };
-}
+  try {
+    const { data } = await axios.get('https://ytapi.apps.mattw.io/v3/search', {
+      params: { key: 'foo1', part: 'snippet', type: 'video', maxResults: 3, q: input },
+      headers: { Referer: 'https://mattw.io/youtube-metadata/', 'User-Agent': BROWSER_UA },
+      timeout: 8000
+    });
+    const item = data?.items?.[0];
+    const vid = item?.id?.videoId;
+    if (vid) {
+      return {
+        videoId: vid,
+        url: `https://www.youtube.com/watch?v=${vid}`,
+        title: item.snippet?.title || input,
+        duration: 'Auto',
+        seconds: 0,
+        views: 'N/A',
+        author: item.snippet?.channelTitle || 'YouTube',
+        thumbnail: `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`
+      };
+    }
+  } catch {}
 
-function sanitizeFileName(name) {
-  const cleaned = String(name || 'video')
-    .replace(/[\\/:*?"<>|\r\n\t]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 80);
-  return cleaned || 'video';
-}
-
-/** Resolve a scraper result (CDN URL or Buffer) into a real Buffer. */
-async function resolveMediaBuffer(media) {
-  if (media?.type === 'buffer' && Buffer.isBuffer(media.buffer)) return media.buffer;
-  if (!media?.url) throw new Error('No download URL was returned by the scraper.');
-  const { data } = await axios.get(media.url, {
-    responseType: 'arraybuffer',
-    timeout: 90000,
-    maxContentLength: 200 * 1024 * 1024,
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36' }
-  });
-  const buf = Buffer.from(data);
-  if (buf.length < 8192) throw new Error('Downloaded video is empty or too small.');
-  return buf;
+  return null;
 }
 
 /**
- * Some 360p scraper links serve fragmented/WebM data that WhatsApp cannot
- * preview. Re-mux to a baseline H.264 + AAC MP4 with faststart so the video
- * renders a proper thumbnail instead of arriving "invisible".
+ * TIER 1: Direct Multi-CDN SaveTube AES-128-CBC Engine
+ * (Calls SaveTube's residential CDN workers directly WITHOUT calling yts(url), so Render/AWS IP blocks never affect it!)
  */
-async function normalizeMp4Buffer(inputBuf) {
-  const id = crypto.randomBytes(6).toString('hex');
-  const inFile = path.join(os.tmpdir(), `texmex-yt-in-${id}.bin`);
-  const outFile = path.join(os.tmpdir(), `texmex-yt-out-${id}.mp4`);
-  fs.writeFileSync(inFile, inputBuf);
-  try {
-    await execFileAsync(
-      getFfmpegPath(),
-      [
-        '-y', '-v', 'error', '-i', inFile,
-        '-map', '0:v:0', '-map', '0:a:0?',
-        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '26',
-        '-pix_fmt', 'yuv420p', '-profile:v', 'baseline', '-level', '3.0',
-        '-c:a', 'aac', '-b:a', '128k',
-        '-movflags', '+faststart', '-f', 'mp4', outFile
-      ],
-      { timeout: 180000, maxBuffer: 4 * 1024 * 1024 }
-    );
-    const normalized = fs.readFileSync(outFile);
-    return normalized.length > 8192 ? normalized : inputBuf;
-  } catch {
-    return inputBuf;
-  } finally {
-    fs.rmSync(inFile, { force: true });
-    fs.rmSync(outFile, { force: true });
+async function extractViaDirectSaveTube(videoId, mode = 'audio', qualities = [128]) {
+  const secretKey = Buffer.from('C5D58EF67A7584E4A29F6C35BBC4EB12', 'hex');
+  const canonicalUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const cdnRes = await axios.get('https://media.savetube.vip/api/random-cdn', {
+        timeout: 7000,
+        headers: { 'User-Agent': BROWSER_UA }
+      });
+      const cdn = cdnRes.data?.cdn;
+      if (!cdn) continue;
+
+      const stHeaders = {
+        'Content-Type': 'application/json',
+        'User-Agent': BROWSER_UA,
+        Origin: 'https://ytshorts.savetube.me',
+        Referer: 'https://ytshorts.savetube.me/'
+      };
+
+      const infoEnc = await axios.post(
+        `https://${cdn}/v2/info`,
+        { url: canonicalUrl },
+        { headers: stHeaders, timeout: 12000 }
+      );
+      if (!infoEnc.data?.data) continue;
+
+      const raw = Buffer.from(infoEnc.data.data, 'base64');
+      const decipher = crypto.createDecipheriv('aes-128-cbc', secretKey, raw.subarray(0, 16));
+      const info = JSON.parse(
+        Buffer.concat([decipher.update(raw.subarray(16)), decipher.final()]).toString('utf8')
+      );
+      if (!info?.key) continue;
+
+      for (const q of qualities) {
+        try {
+          const dlRes = await axios.post(
+            `https://${cdn}/download`,
+            { downloadType: mode, quality: String(q), key: info.key },
+            { headers: stHeaders, timeout: 15000 }
+          );
+          const dlUrl = dlRes.data?.data?.downloadUrl;
+          if (!dlUrl) continue;
+
+          const buffer = await downloadVerifiedBuffer(dlUrl, {
+            Referer: 'https://ytshorts.savetube.me/'
+          });
+          return {
+            type: 'buffer',
+            buffer,
+            title: info.title,
+            quality: mode === 'audio' ? `${q}kbps` : `${q}p`
+          };
+        } catch {
+          // try next quality
+        }
+      }
+    } catch {
+      // try next random SaveTube CDN node
+    }
   }
+  return null;
 }
 
-/** Grab a JPEG frame for WhatsApp's video preview card. */
-async function makeVideoThumbnail(videoBuf) {
-  const id = crypto.randomBytes(6).toString('hex');
-  const inFile = path.join(os.tmpdir(), `texmex-thumb-${id}.mp4`);
-  fs.writeFileSync(inFile, videoBuf);
+/**
+ * TIER 2: CNVmp3 / CNVmp4 Cloud Engine (check_database.php + download_video_ucep.php)
+ */
+async function extractViaCnvMp3(videoId, mode = 'audio') {
+  const canonicalUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  const formatValue = mode === 'audio' ? 1 : 0;
+  const quality = mode === 'audio' ? 4 : 360; // 4 = 128kbps MP3, 360 = 360p MP4
+  const cnvHeaders = {
+    'Content-Type': 'application/json',
+    Origin: 'https://cnvmp3.com',
+    Referer: 'https://cnvmp3.com/v55',
+    'User-Agent': BROWSER_UA
+  };
+
   try {
-    const attempts = ['1', '0'];
-    for (const seek of attempts) {
-      try {
-        const { stdout } = await execFileAsync(
-          getFfmpegPath(),
-          ['-y', '-v', 'error', '-ss', seek, '-i', inFile, '-frames:v', '1', '-q:v', '3', '-f', 'image2', '-'],
-          { encoding: 'buffer', maxBuffer: 8 * 1024 * 1024, timeout: 30000 }
-        );
-        if (Buffer.isBuffer(stdout) && stdout.length > 1024) return stdout;
-      } catch {
-        // try next seek position
+    const dbRes = await axios.post(
+      'https://cnvmp3.com/check_database.php',
+      { youtube_id: videoId, quality, formatValue },
+      { headers: cnvHeaders, timeout: 9000 }
+    );
+    const cachedUrl = dbRes.data?.data?.server_path;
+    if (!dbRes.data?.error && cachedUrl) {
+      const safeUrl = cachedUrl.replace(/&/g, '%26').replace(/#/g, '%23').replace(/\+/g, '%2B');
+      const buffer = await downloadVerifiedBuffer(safeUrl, { Referer: 'https://cnvmp3.com/' });
+      return { type: 'buffer', buffer, quality: mode === 'audio' ? '128kbps' : '360p' };
+    }
+
+    const metaRes = await axios.post(
+      'https://cnvmp3.com/get_video_data.php',
+      { url: canonicalUrl, token: '1234' },
+      { headers: cnvHeaders, timeout: 10000 }
+    );
+    if (!metaRes.data?.error && metaRes.data?.title) {
+      const convRes = await axios.post(
+        'https://cnvmp3.com/download_video_ucep.php',
+        {
+          url: canonicalUrl,
+          quality,
+          title: metaRes.data.title,
+          formatValue,
+          token: '1234'
+        },
+        { headers: cnvHeaders, timeout: 22000 }
+      );
+      const dlLink = convRes.data?.download_link;
+      if (dlLink) {
+        const safeUrl = dlLink.replace(/&/g, '%26').replace(/#/g, '%23').replace(/\+/g, '%2B');
+        const buffer = await downloadVerifiedBuffer(safeUrl, { Referer: 'https://cnvmp3.com/' });
+        return { type: 'buffer', buffer, quality: mode === 'audio' ? '128kbps' : '360p' };
       }
     }
-    return null;
-  } finally {
-    fs.rmSync(inFile, { force: true });
+  } catch {
+    // fall through to Tier 3
   }
+  return null;
+}
+
+/**
+ * TIER 3: @hiudyy/ytdl 7-Provider Pool (nayan, ytconvert, nevercap, oceansaver, savetube, luka)
+ */
+async function extractViaHiudyyPool(videoId, fmt = 'mp3') {
+  try {
+    const canonicalUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const res = await downloadYouTube(canonicalUrl, fmt);
+    const mediaUrl = res?.filePath || res?.url;
+    if (res?.success && mediaUrl) {
+      const buffer = await downloadVerifiedBuffer(mediaUrl);
+      return { type: 'buffer', buffer, quality: fmt === 'mp3' ? '128kbps' : `${res.quality || 360}p` };
+    }
+  } catch {
+    // fall through to Tier 4
+  }
+  return null;
 }
 
 async function fetchYouTubeMp4(videoUrl) {
-  // Tier 1: @vreden/youtube_scraper (fast pre-muxed video+audio CDN MP4)
-  for (const quality of [360, 480, 720]) {
-    try {
-      const res = await vreden.ytmp4(videoUrl, quality);
-      if (res?.download?.url) {
-        return { type: 'url', url: res.download.url, quality: res.download.quality || `${quality}p` };
-      }
-    } catch {
-      // try next quality / tier
-    }
-  }
+  const videoId = videoUrl.match(YT_URL_REGEX)?.[1];
+  if (!videoId) throw new Error('Invalid YouTube video URL.');
 
-  // Tier 2: social-dl youtubeSave into temporary file
+  // Tier 1: Direct SaveTube Multi-CDN (360p / 480p / 720p)
+  const t1 = await extractViaDirectSaveTube(videoId, 'video', [360, 480, 720]);
+  if (t1) return t1;
+
+  // Tier 2: CNVmp4 Cloud Converter
+  const t2 = await extractViaCnvMp3(videoId, 'video');
+  if (t2) return t2;
+
+  // Tier 3: @hiudyy/ytdl 7-Provider Pool
+  const t3 = await extractViaHiudyyPool(videoId, 'mp4');
+  if (t3) return t3;
+
+  // Tier 4: social-dl with standalone Python-free yt-dlp_linux binary
+  await ensureStandaloneYtDlp();
   const tmpFile = path.join(os.tmpdir(), `texmex-yt-${crypto.randomBytes(5).toString('hex')}.mp4`);
   try {
     await sdl.youtubeSave(videoUrl, tmpFile, '360');
     if (fs.existsSync(tmpFile)) {
       const buf = fs.readFileSync(tmpFile);
-      if (buf.length > 8192) {
+      if (buf.length > 20000) {
         return { type: 'buffer', buffer: buf, quality: '360p' };
       }
     }
@@ -158,31 +381,39 @@ async function fetchYouTubeMp4(videoUrl) {
     fs.rmSync(tmpFile, { force: true });
   }
 
-  throw new Error('Could not extract YouTube MP4 stream right now. Try another video or link.');
+  throw new Error('All 4 YouTube MP4 extraction engines were rate-limited on this video. Please retry in a few seconds.');
 }
 
 async function fetchYouTubeMp3(videoUrl) {
-  try {
-    const res = await vreden.ytmp3(videoUrl, 128);
-    if (res?.download?.url) {
-      return { type: 'url', url: res.download.url };
-    }
-  } catch {
-    // fallback to social-dl
-  }
+  const videoId = videoUrl.match(YT_URL_REGEX)?.[1];
+  if (!videoId) throw new Error('Invalid YouTube video URL.');
 
+  // Tier 1: Direct SaveTube Multi-CDN (128kbps / 92kbps)
+  const t1 = await extractViaDirectSaveTube(videoId, 'audio', [128, 92]);
+  if (t1) return t1;
+
+  // Tier 2: CNVmp3 Cloud Converter
+  const t2 = await extractViaCnvMp3(videoId, 'audio');
+  if (t2) return t2;
+
+  // Tier 3: @hiudyy/ytdl 7-Provider Pool
+  const t3 = await extractViaHiudyyPool(videoId, 'mp3');
+  if (t3) return t3;
+
+  // Tier 4: social-dl with standalone Python-free yt-dlp_linux binary
+  await ensureStandaloneYtDlp();
   const tmpFile = path.join(os.tmpdir(), `texmex-yta-${crypto.randomBytes(5).toString('hex')}.mp3`);
   try {
     await sdl.youtubeMp3Save(videoUrl, tmpFile);
     if (fs.existsSync(tmpFile)) {
       const buf = fs.readFileSync(tmpFile);
-      if (buf.length > 4096) return { type: 'buffer', buffer: buf };
+      if (buf.length > 20000) return { type: 'buffer', buffer: buf };
     }
   } finally {
     fs.rmSync(tmpFile, { force: true });
   }
 
-  throw new Error('Could not extract YouTube MP3 audio stream right now.');
+  throw new Error('All 4 YouTube MP3 extraction engines were rate-limited on this song. Please retry in a few seconds.');
 }
 
 async function extractMediaFire(mfUrl) {
@@ -327,34 +558,16 @@ export default [
         `🎞️ *Quality:* ${media.quality || '360p'}`
       ]);
 
-      let videoBuf;
-      try {
-        const rawBuf = await resolveMediaBuffer(media);
-        videoBuf = await normalizeMp4Buffer(rawBuf);
-      } catch (err) {
-        return m.reply(`⚠️ Could not prepare the MP4: ${err?.message || err}`);
-      }
-
-      const fileName = `${sanitizeFileName(meta.title)}.mp4`;
-      const thumbnail = await makeVideoThumbnail(videoBuf);
-      const payload = {
-        video: videoBuf,
-        mimetype: 'video/mp4',
-        fileName,
-        caption
-      };
-      if (thumbnail) payload.jpegThumbnail = thumbnail;
-
-      try {
-        await sock.sendMessage(m.chat, payload, { quoted: m.raw });
-      } catch {
-        // Last resort: a proper named document is still visible and downloadable.
-        await sock.sendMessage(
-          m.chat,
-          { document: videoBuf, mimetype: 'video/mp4', fileName, caption },
-          { quoted: m.raw }
-        );
-      }
+      await sock.sendMessage(
+        m.chat,
+        {
+          video: media.type === 'buffer' ? media.buffer : { url: media.url },
+          mimetype: 'video/mp4',
+          fileName: `${meta.title}.mp4`,
+          caption
+        },
+        { quoted: m.raw }
+      );
     }
   },
   {

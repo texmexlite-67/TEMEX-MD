@@ -635,7 +635,7 @@ textarea.in{font-family:var(--mono);font-size:11.5px;min-height:78px;resize:vert
           </div>
 
           <div id="phonkAudioBar" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <audio id="phonkAudioEl" controls crossorigin="anonymous" style="flex:1;min-width:240px;height:38px;"></audio>
+            <audio id="phonkAudioEl" controls preload="auto" style="flex:1;min-width:240px;height:38px;"></audio>
           </div>
 
           <div id="phonkOutDetails" style="margin-top:9px;font-size:11.5px;color:#cfe7e2;line-height:1.55;"></div>
@@ -1871,17 +1871,29 @@ const BotBridge=(()=>{
       if (!visCtx) {
         const AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) return null;
-        visCtx = new AC();
-        visAnalyser = visCtx.createAnalyser();
-        visAnalyser.fftSize = 256;
-        visAnalyser.smoothingTimeConstant = 0.78;
-        visSource = visCtx.createMediaElementSource(aud);
-        visSource.connect(visAnalyser);
-        visAnalyser.connect(visCtx.destination);
+        try {
+          visCtx = new AC();
+          visAnalyser = visCtx.createAnalyser();
+          visAnalyser.fftSize = 256;
+          visAnalyser.smoothingTimeConstant = 0.78;
+          visSource = visCtx.createMediaElementSource(aud);
+          visSource.connect(visAnalyser);
+          visAnalyser.connect(visCtx.destination);
+        } catch (e) {
+          // If MediaElementSource is restricted in sandboxed context, let native <audio> output directly!
+          visCtx = null;
+          visAnalyser = null;
+          return null;
+        }
       }
-      if (visCtx.state === 'suspended') visCtx.resume().catch(() => {});
+      if (visCtx && visCtx.state === 'suspended') visCtx.resume().catch(() => {});
       return visAnalyser;
     };
+
+    // Always resume AudioContext whenever user hits Play on <audio> so sound is NEVER muted!
+    $('#phonkAudioEl')?.addEventListener('play', () => {
+      if (visCtx && visCtx.state === 'suspended') visCtx.resume().catch(() => {});
+    });
 
     const startLiveCanvasVisualizer = () => {
       const canvas = $('#phonkVisCanvas');
@@ -2046,17 +2058,76 @@ const BotBridge=(()=>{
     };
     $('#phonkEnhanceBtn').onclick = runPhonkEnhance;
 
+    const safeJson = async (resp) => {
+      const txt = await resp.text();
+      try {
+        return JSON.parse(txt);
+      } catch {
+        throw new Error(`Server returned HTTP ${resp.status} (check cloud logs / retry)`);
+      }
+    };
+
+    const populatePhonkStage = (tr, { mp4Ready = true, pushedToStatus = false, recipientsCount = 0 } = {}) => {
+      currentPhonkTrack = tr;
+      const mins = Math.floor(tr.durationSec / 60);
+      const secs = String(Math.round(tr.durationSec % 60)).padStart(2, '0');
+
+      $('#phonkStageCard').style.display = 'block';
+      $('#phonkOutTitle').textContent = `🎵 ${tr.title} (${tr.durationSec}s / 0${mins}:${secs})`;
+      $('#phonkOutMeta').textContent = `${tr.album} · ${tr.effectiveBpm || tr.bpm} BPM · ${tr.genreLabel} · ${tr.moodLabel} · ${tr.typeLabel} · ${tr.effectLabel}`;
+      $('#phonkOutDetails').innerHTML =
+        `<b>✨ AI Production Direction:</b> ${tr.enhancedPrompt}<br/>` +
+        `<b>🎙️ Smart Vocal / Instrumental Status:</b> <span style="color:var(--accent)">${tr.vocalModeUsed}</span>` +
+        (tr.vocalUsed && tr.vocalScript ? ` — <i>"${tr.vocalScript}"</i>` : ` — <i>3-Formant "No Batidão" Lead Synth + 2020s Sub-Bass Melodies Active</i>`);
+
+      const toRel = (u) => (u && u.startsWith('/') ? `.${u}` : u);
+      $('#dlPhonkMp3Link').href = toRel(tr.urls.mp3Download);
+      $('#dlPhonkMp3Link').download = `${tr.slug}.mp3`;
+      $('#dlPhonkThemeLink').href = toRel(tr.urls.themeDownload);
+      $('#dlPhonkThemeLink').download = `${tr.slug}-anime-theme.jpg`;
+
+      if (mp4Ready && tr.urls.mp4Download) {
+        $('#dlPhonkMp4Link').href = toRel(tr.urls.mp4Download);
+        $('#dlPhonkMp4Link').download = `${tr.slug}-visualizer.mp4`;
+        $('#dlPhonkMp4Link').style.opacity = '1';
+        $('#dlPhonkMp4Link').textContent = '🎬 Download MP4';
+        $('#visModeVideoBtn').disabled = false;
+        $('#phonkVideoEl').src = toRel(tr.urls.mp4Stream);
+      } else {
+        $('#dlPhonkMp4Link').style.opacity = '0.55';
+        $('#dlPhonkMp4Link').textContent = '⏳ Encoding MP4...';
+        $('#visModeVideoBtn').disabled = true;
+      }
+
+      const aud = $('#phonkAudioEl');
+      const targetMp3 = toRel(tr.urls.mp3Stream);
+      if (!aud.dataset.trackId || aud.dataset.trackId !== tr.trackId) {
+        aud.dataset.trackId = tr.trackId;
+        visBgImg.src = `${toRel(tr.urls.themeImage)}?t=${Date.now()}`;
+        aud.src = targetMp3;
+        aud.load();
+        switchVisMode('canvas');
+        startLiveCanvasVisualizer();
+        if (visCtx && visCtx.state === 'suspended') visCtx.resume().catch(() => {});
+        aud.play().catch(() => {});
+      }
+    };
+
     const runPhonkGenerate = async (pushToStatus = false) => {
+      // Unlock WebAudio synchronously inside user click gesture so audio NEVER plays muted!
+      ensureVisAnalyser();
+
       const prog = $('#phonkProgressLine');
       prog.style.display = 'block';
       const reqDur = Number($('#phonkDurationSelect').value || 168);
       const vocalMode = $('#phonkVocalModeSelect').value || 'auto_aligned';
-      prog.textContent = `⏳ [1/3] AI Producer building ${reqDur}s+ 8-act song, verifying vocal beat-alignment & No Batidão CD synth...`;
+      prog.textContent = `⏳ [5%] Booting AI Phonk Studio (${reqDur}s+ 8-act song · Smart Beat-Align / No Batidão CD)...`;
       $('#phonkGenerateBtn').disabled = true;
       $('#phonkGenPushBtn').disabled = true;
 
       try {
         const body = {
+          asyncJob: true,
           prompt: $('#phonkPromptInput').value.trim(),
           bpm: Number($('#phonkBpmInput').value || 130),
           genre: $('#phonkGenreSelect').value,
@@ -2070,57 +2141,67 @@ const BotBridge=(()=>{
           pushToStatus
         };
 
-        const timerMsg = setTimeout(() => {
-          prog.textContent = `⏳ [2/3] Mastering ${reqDur}s+ audio (${$('#phonkTypeSelect').value} · ${$('#phonkEffectSelect').value}) & rendering full Anime Visualizer MP4 + 320kbps MP3...`;
-        }, 4500);
-
-        const r = await fetch('./api/phonk/generate', {
+        const startResp = await fetch('./api/phonk/generate', {
           method: 'POST', headers: dashHeaders(), body: JSON.stringify(body)
         });
-        clearTimeout(timerMsg);
-        const d = await r.json();
-        if (!d.ok) {
-          prog.textContent = `⚠️ ${d.error || 'Generation failed'}`;
-          toast(d.error || 'studio generation failed');
+        const startData = await safeJson(startResp);
+        if (!startData.ok) {
+          prog.textContent = `⚠️ ${startData.error || 'Generation failed'}`;
+          toast(startData.error || 'studio generation failed');
           return;
         }
 
-        const tr = d.track;
-        currentPhonkTrack = tr;
-        const mins = Math.floor(tr.durationSec / 60);
-        const secs = String(Math.round(tr.durationSec % 60)).padStart(2, '0');
-        prog.textContent = `✅ Rendered "${tr.title}" (${tr.durationSec}s / 0${mins}:${secs} · ${tr.effectiveBpm || tr.bpm} BPM · ${tr.vocalModeUsed})${d.pushedToStatus ? ` · Pushed to Status (${d.recipientsCount} contacts)!` : '!'}`;
+        // Poll async job (immune to Cloudflare 524 / Render 502 timeouts!)
+        if (startData.asyncJob && startData.jobId) {
+          let earlyPlayed = false;
+          for (let poll = 0; poll < 160; poll++) {
+            await new Promise((r) => setTimeout(r, 1250));
+            const jr = await fetch(`./api/phonk/job/${encodeURIComponent(startData.jobId)}`, {
+              headers: dashHeaders()
+            });
+            const jd = await safeJson(jr);
+            if (!jd.ok || jd.status === 'error') {
+              throw new Error(jd.error || 'Studio synthesis job failed.');
+            }
 
-        $('#phonkStageCard').style.display = 'block';
-        $('#phonkOutTitle').textContent = `🎵 ${tr.title} (${tr.durationSec}s / 0${mins}:${secs})`;
-        $('#phonkOutMeta').textContent = `${tr.album} · ${tr.effectiveBpm || tr.bpm} BPM · ${tr.genreLabel} · ${tr.moodLabel} · ${tr.typeLabel} · ${tr.effectLabel}`;
-        $('#phonkOutDetails').innerHTML =
-          `<b>✨ AI Production Direction:</b> ${tr.enhancedPrompt}<br/>` +
-          `<b>🎙️ Smart Vocal / Instrumental Status:</b> <span style="color:var(--accent)">${tr.vocalModeUsed}</span>` +
-          (tr.vocalUsed && tr.vocalScript ? ` — <i>"${tr.vocalScript}"</i>` : ` — <i>3-Formant "No Batidão" Lead Synth + 2020s Sub-Bass Melodies Active</i>`);
+            prog.textContent = `⏳ [${jd.percent || 25}%] ${jd.phase || 'Synthesizing...'}`;
 
-        // Set consistent download hrefs
-        $('#dlPhonkMp4Link').href = tr.urls.mp4Download;
-        $('#dlPhonkMp4Link').download = `${tr.slug}-visualizer.mp4`;
-        $('#dlPhonkMp3Link').href = tr.urls.mp3Download;
-        $('#dlPhonkMp3Link').download = `${tr.slug}.mp3`;
-        $('#dlPhonkThemeLink').href = tr.urls.themeDownload;
-        $('#dlPhonkThemeLink').download = `${tr.slug}-anime-theme.jpg`;
+            // Instant MP3 playback + 60fps Live Anime Visualizer the second MP3 finishes (~4s)!
+            if (jd.mp3Ready && jd.partialTrack && !earlyPlayed) {
+              earlyPlayed = true;
+              populatePhonkStage(jd.partialTrack, { mp4Ready: false });
+              toast(`🎵 Playing ${jd.partialTrack.durationSec}s song while MP4 finishes!`);
+            }
 
-        // Load matching Anime Theme photo + consistent MP3 & MP4 streams
-        visBgImg.src = `${tr.urls.themeImage}?t=${Date.now()}`;
-        const aud = $('#phonkAudioEl');
-        const vid = $('#phonkVideoEl');
-        aud.src = tr.urls.mp3Stream;
-        vid.src = tr.urls.mp4Stream;
+            if (jd.status === 'done' && jd.track) {
+              const tr = jd.track;
+              const mins = Math.floor(tr.durationSec / 60);
+              const secs = String(Math.round(tr.durationSec % 60)).padStart(2, '0');
+              populatePhonkStage(tr, {
+                mp4Ready: true,
+                pushedToStatus: jd.pushedToStatus,
+                recipientsCount: jd.recipientsCount
+              });
+              prog.textContent = `✅ Rendered "${tr.title}" (${tr.durationSec}s / 0${mins}:${secs} · ${tr.effectiveBpm || tr.bpm} BPM · ${tr.vocalModeUsed})${jd.pushedToStatus ? ` · Pushed to Status (${jd.recipientsCount} contacts)!` : '!'}`;
+              toast(`Full MP3 + MP4 Anime Visualizer ready (${tr.durationSec}s)!`);
+              return;
+            }
+          }
+          throw new Error('Studio job timed out waiting for MP4 finalization.');
+        }
 
-        switchVisMode('canvas');
-        ensureVisAnalyser();
-        startLiveCanvasVisualizer();
-        aud.play().catch(() => {});
-        toast(`160s+ song ready (${tr.durationSec}s)!`);
+        // Direct synchronous fallback
+        if (startData.track) {
+          populatePhonkStage(startData.track, {
+            mp4Ready: true,
+            pushedToStatus: startData.pushedToStatus,
+            recipientsCount: startData.recipientsCount
+          });
+          toast(`160s+ song ready (${startData.track.durationSec}s)!`);
+        }
       } catch (err) {
         prog.textContent = `⚠️ Error: ${err.message}`;
+        toast(err.message || 'Generation error');
       } finally {
         $('#phonkGenerateBtn').disabled = false;
         $('#phonkGenPushBtn').disabled = false;

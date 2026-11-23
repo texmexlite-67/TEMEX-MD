@@ -110,6 +110,7 @@ async function runPhonkCommand({ sock, m, text, prefix, forcedGenre = '', pushSt
       `• *Vocals:* Smart Beat-Align / No Batidão CD Instrumental Gate`
   );
 
+  let mp3SentEarly = false;
   const bundle = await generatePhonkStudioBundle({
     prompt: params.prompt,
     bpm: params.bpm,
@@ -119,12 +120,25 @@ async function runPhonkCommand({ sock, m, text, prefix, forcedGenre = '', pushSt
     effect: params.effect,
     durationSec: 168,
     includeVocals: params.vocalMode !== 'cd_no_batidao',
-    vocalMode: params.vocalMode
+    vocalMode: params.vocalMode,
+    onMp3Ready: async (partial) => {
+      // Deliver the mastered 160s+ MP3 song immediately (~4s) while the MP4 visualizer finishes!
+      const mp3Buf = fs.readFileSync(partial.paths.mp3Path);
+      await sock.sendMessage(
+        m.chat,
+        {
+          audio: mp3Buf,
+          mimetype: 'audio/mpeg',
+          fileName: `${partial.slug}.mp3`,
+          ptt: false
+        },
+        { quoted: m.raw }
+      );
+      mp3SentEarly = true;
+    }
   });
 
   const mp4Buf = fs.readFileSync(bundle.paths.mp4Path);
-  const mp3Buf = fs.readFileSync(bundle.paths.mp3Path);
-
   const caption =
     sciFiCard('AI PHONK STUDIO // 160s+ CD MASTER', [
       `🎵 *Title:* ${bundle.title}`,
@@ -134,7 +148,7 @@ async function runPhonkCommand({ sock, m, text, prefix, forcedGenre = '', pushSt
       `🌀 *BPM / Mood:* ${bundle.effectiveBpm} BPM · ${bundle.moodLabel}`,
       `💥 *Type / FX:* ${bundle.typeLabel} · ${bundle.effectLabel}`,
       `🎙️ *Vocal Engine:* ${bundle.vocalModeUsed}`,
-      `📦 *Consistent Export:* Full MP4 Anime Visualizer + MP3 below!`
+      `📦 *Consistent Export:* Mastered MP3 + Full MP4 Anime Visualizer!`
     ]);
 
   await sock.sendMessage(
@@ -147,16 +161,19 @@ async function runPhonkCommand({ sock, m, text, prefix, forcedGenre = '', pushSt
     { quoted: m.raw }
   );
 
-  await sock.sendMessage(
-    m.chat,
-    {
-      audio: mp3Buf,
-      mimetype: 'audio/mpeg',
-      fileName: `${bundle.slug}.mp3`,
-      ptt: false
-    },
-    { quoted: m.raw }
-  );
+  if (!mp3SentEarly) {
+    const mp3Buf = fs.readFileSync(bundle.paths.mp3Path);
+    await sock.sendMessage(
+      m.chat,
+      {
+        audio: mp3Buf,
+        mimetype: 'audio/mpeg',
+        fileName: `${bundle.slug}.mp3`,
+        ptt: false
+      },
+      { quoted: m.raw }
+    );
+  }
 
   if (pushStatus) {
     const res = await pushContentToStatus(sock, {
