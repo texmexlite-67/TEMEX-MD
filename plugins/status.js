@@ -11,9 +11,18 @@ import {
 } from '../lib/status-poster.js';
 import {
   updateSettings,
+  getSlotConfig,
+  updateSlotConfig,
   getStatusAudienceJids,
   registerContactJid
 } from '../lib/store.js';
+import {
+  PUSH_CATEGORIES,
+  PUSH_SUBCATEGORIES,
+  findSubcategory,
+  buildSubcategoryContent,
+  dispatchSubcategoryItem
+} from '../lib/push-catalog.js';
 import { cleanPhoneNumber } from '../lib/env.js';
 import { sciFiCard, OFFICIAL_WEB_URL, DEV_SIGNATURE } from '../lib/style.js';
 
@@ -302,6 +311,150 @@ export default [
         },
         { quoted: m.raw }
       );
+    }
+  },
+  {
+    name: 'pushmenu',
+    aliases: ['tickmenu', 'pushlist', 'pushcategories'],
+    category: 'status',
+    desc: 'Interactive Beginner Tick-Checklist of 24 Status Push Sub-Categories',
+    usage: '.pushmenu',
+    react: '☑️',
+    async execute({ m, prefix, botRuntime }) {
+      const slotId = botRuntime?.slotId || 'srv-1';
+      const slotCfg = getSlotConfig(slotId);
+      const ticked = new Set(slotCfg.tickedSubcategories || []);
+
+      const lines = [
+        `🛰️ *Active Server:* ${slotCfg.label}`,
+        `🔁 *Auto-Push Schedule:* ${slotCfg.autoPushEnabled ? `ON (every ${slotCfg.autoPushIntervalMins}m)` : 'OFF'}`,
+        ``
+      ];
+
+      for (const cat of PUSH_CATEGORIES) {
+        lines.push(`*━━ ${cat.label.toUpperCase()} ━━*`);
+        const subs = PUSH_SUBCATEGORIES.filter((s) => s.categoryId === cat.id);
+        for (const s of subs) {
+          const mark = ticked.has(s.id) ? '☑️' : '⬜';
+          lines.push(`${mark} *[${s.num}]* ${s.title} _(${s.tag})_`);
+        }
+        lines.push('');
+      }
+
+      lines.push(`⚡ *Quick Push Selected Numbers:*`);
+      lines.push(`▸ *${prefix}tickpush 1,2,5,21* _(pushes ticked numbers immediately)_`);
+      lines.push(`▸ *${prefix}tickpush save 1,2,5,9 120* _(saves ticks & schedules every 120m)_`);
+      lines.push(`▸ Or tick visually on Web: ${OFFICIAL_WEB_URL}`);
+
+      await m.reply(sciFiCard('TICK-BOX PUSH SUB-CATEGORIES', lines));
+    }
+  },
+  {
+    name: 'tickpush',
+    aliases: ['pushtick', 'selectpush'],
+    category: 'status',
+    desc: 'Push one or multiple ticked sub-category numbers (e.g. .tickpush 1,2,5) or save Auto-Push ticks',
+    usage: '.tickpush <1,2,5 | save 1,2,5 [minutes] | off>',
+    ownerOnly: true,
+    react: '✅',
+    async execute({ sock, m, args, text, prefix, botRuntime }) {
+      const slotId = botRuntime?.slotId || sock?.slotId || 'srv-1';
+      const first = (args[0] || '').toLowerCase();
+
+      if (!first) {
+        return m.reply(
+          `☑️ Usage:\n` +
+            `• *${prefix}pushmenu* — View all 24 numbered sub-categories\n` +
+            `• *${prefix}tickpush 1,2,5* — Push sub-categories #1, #2 & #5 now\n` +
+            `• *${prefix}tickpush save 1,2,5,13 90* — Auto-push ticked items every 90 mins\n` +
+            `• *${prefix}tickpush off* — Pause scheduled tick auto-push`
+        );
+      }
+
+      if (first === 'off' || first === 'stop') {
+        updateSlotConfig(slotId, { autoPushEnabled: false });
+        botRuntime?.syncTickAutoPushScheduler?.();
+        return m.reply(sciFiCard('TICK AUTO-PUSH PAUSED', [`⏹️ Scheduled sub-category pushing is now OFF on *${slotId.toUpperCase()}*.`]));
+      }
+
+      const isSave = first === 'save' || first === 'schedule';
+      const rawSelection = isSave ? args[1] || '' : text.split('|')[0] || first;
+      const customNote = !isSave && text.includes('|') ? text.split('|').slice(1).join('|').trim() : '';
+
+      const tokens = rawSelection.split(/[\s,]+/).filter(Boolean);
+      const chosenSubs = [];
+      for (const tok of tokens) {
+        const sub = findSubcategory(tok);
+        if (sub && !chosenSubs.find((x) => x.id === sub.id)) chosenSubs.push(sub);
+      }
+
+      if (chosenSubs.length === 0) {
+        return m.reply(`⚠️ No valid sub-category numbers found. Type *${prefix}pushmenu* to see *[1]* through *[24]*.`);
+      }
+
+      if (isSave) {
+        const mins = Math.max(15, Number(args[2]) || 120);
+        updateSlotConfig(slotId, {
+          tickedSubcategories: chosenSubs.map((s) => s.id),
+          autoPushEnabled: true,
+          autoPushIntervalMins: mins
+        });
+        botRuntime?.syncTickAutoPushScheduler?.();
+        return m.reply(
+          sciFiCard('TICK SCHEDULE SAVED', [
+            `✅ Saved *${chosenSubs.length}* ticked sub-categories on *${slotId.toUpperCase()}*!`,
+            `⏱️ *Interval:* Every ${mins} minutes`,
+            ...chosenSubs.map((s) => `☑️ [${s.num}] ${s.title}`)
+          ])
+        );
+      }
+
+      await m.reply(`☑️ Pushing *${chosenSubs.length}* selected sub-categor${chosenSubs.length === 1 ? 'y' : 'ies'} smoothly...`);
+      const results = [];
+      for (const sub of chosenSubs.slice(0, 6)) {
+        const built = await buildSubcategoryContent(sub.id, {
+          customNote,
+          voice: getSlotConfig(slotId).voice || 'andrew',
+          webUrl: OFFICIAL_WEB_URL
+        });
+        const res = await dispatchSubcategoryItem(sock, built, {
+          toStatus: true,
+          toSelf: false,
+          selfJid: m.botJid
+        });
+        results.push(`☑️ *[${res.num}] ${res.title}* → pushed (${res.recipientsCount} contacts)`);
+      }
+
+      await m.reply(sciFiCard('TICK PUSH COMPLETE', results));
+    }
+  },
+  {
+    name: 'servers',
+    aliases: ['slots', 'botservers', 'openslots'],
+    category: 'core',
+    desc: 'View all open & occupied Multi-Server Bot Slots so clients/members can grab a free server',
+    usage: '.servers',
+    react: '🛰️',
+    async execute({ m, botRuntime }) {
+      const cluster = botRuntime?.cluster;
+      if (!cluster) {
+        return m.reply(`🛰️ Single-node mode active. Pair at: ${OFFICIAL_WEB_URL}`);
+      }
+      const ov = cluster.getClusterOverview({ maskNumbers: true });
+      const lines = [
+        `🟢 *Connected Servers:* ${ov.connectedCount} / ${ov.totalServers}`,
+        `🟡 *Free Open Servers:* ${ov.freeCount} available right now!`,
+        ``
+      ];
+      for (const s of ov.servers.slice(0, 12)) {
+        const badge =
+          s.status === 'connected'
+            ? `🟢 OCCUPIED (${s.user?.maskedNumber || 'Online'})`
+            : `🟡 FREE — OPEN TO GRAB`;
+        lines.push(`• *${s.slotId.toUpperCase()}* — ${badge}`);
+      }
+      lines.push(``, `🌐 *Claim a Free Server:* ${OFFICIAL_WEB_URL}`);
+      await m.reply(sciFiCard('NEXUS MULTI-SERVER CLUSTER', lines));
     }
   }
 ];

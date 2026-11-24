@@ -168,15 +168,24 @@ async function runSelfTests() {
     const effectIds = phonkJson.effects.map((e) => e.id);
     assert.ok(effectIds.includes('slowed'), 'Studio effects must include slowed');
 
+    const pushCatRes = await fetch(`http://127.0.0.1:${port}/api/push/catalog`);
+    const pushCatJson = await pushCatRes.json();
+    assert.equal(pushCatJson.ok, true);
+    assert.ok(pushCatJson.categories.length >= 6, 'Push catalog must expose >= 6 categories');
+    assert.ok(pushCatJson.subcategories.length >= 24, 'Push catalog must expose >= 24 tickable subcategories');
+
     const htmlRes = await fetch(`http://127.0.0.1:${port}/`);
     const html = await htmlRes.text();
     assert.ok(html.includes('TEXMEX-MD'), 'Dashboard HTML must render TEXMEX-MD UI');
+    assert.ok(html.includes('NEXUS COMM'), 'Dashboard HTML must render NEXUS COMM UI');
+    assert.ok(html.includes('sec-servers'), 'Dashboard HTML must render Multi-Server Cluster Grid');
+    assert.ok(html.includes('sec-tickpush'), 'Dashboard HTML must render Tick-Box Push Center');
     assert.ok(html.includes('bh-phonk'), 'Dashboard HTML must render AI Phonk Studio UI');
     assert.ok(html.includes('phonkTypeSelect'), 'Studio HTML must include Production Type selector');
     assert.ok(html.includes('phonkEffectSelect'), 'Studio HTML must include Master Effects selector');
     assert.ok(html.includes('phonkDurationSelect'), 'Studio HTML must include 160s+ Duration selector');
     assert.ok(html.includes('phonkVocalModeSelect'), 'Studio HTML must include Smart Vocal Alignment / No Batidao selector');
-    console.log('✅ [6/6] Express Web Pairing Hub, 160s+ AI Phonk & No Batidão Studio & /health endpoints verified');
+    console.log('✅ [6/6] NEXUS COMM Multi-Server Pairing Hub, Tick-Box Push Catalog & 160s+ AI Phonk Studio verified');
   } finally {
     srv.close();
   }
