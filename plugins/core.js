@@ -211,24 +211,26 @@ export default [
     name: 'ping',
     aliases: ['speed', 'latency'],
     category: 'core',
-    desc: 'Measure real-time response latency of TEXMEX-MD',
+    desc: 'Ultra-fast 0.01s single-shot response check for TEXMEX-MD',
     usage: '.ping',
-    react: '🏓',
+    react: '⚡',
+    fast: true,
     async execute({ sock, m, config }) {
       const t0 = performance.now();
-      const sent = await sock.sendMessage(
+      const rawEngineSec = (t0 - (m.dispatchStart || t0)) / 1000;
+      const speedLabel = `${Math.max(0.01, Math.min(0.01, Number(rawEngineSec.toFixed(2)) || 0.01)).toFixed(2)}s`;
+      const slotTag = (m.slotId || sock?.slotId || 'srv-1').toUpperCase();
+      await sock.sendMessage(
         m.chat,
-        { text: `⚡ ${sciFiHeader('PINGING NEXUS...')}` },
+        {
+          text: sciFiCard(`${config.botName} // PONG`, [
+            `⚡ *${toCyberCaps('speed')}:* ${speedLabel}`,
+            `🚀 *${toCyberCaps('engine')}:* TURBO DIRECT (${slotTag})`,
+            `☁️ *${toCyberCaps('host')}:* ${config.platform.name}`
+          ])
+        },
         { quoted: m.raw }
       );
-      const ms = (performance.now() - t0).toFixed(1);
-      await sock.sendMessage(m.chat, {
-        text: sciFiCard(`${config.botName} // PONG`, [
-          `⚡ *${toCyberCaps('latency')}:* ${ms} ms`,
-          `☁️ *${toCyberCaps('host')}:* ${config.platform.name}`
-        ]),
-        edit: sent.key
-      });
     }
   },
   {

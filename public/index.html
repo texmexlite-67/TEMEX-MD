@@ -674,6 +674,26 @@ input:focus,select:focus,textarea:focus{border-color:var(--yellow);box-shadow:0 
           <div id="oracleOutput" class="log" style="display:none;margin-top:8px;min-height:90px;"></div>
         </div>
 
+        <!-- Single-Grey-Tick DM Freeze Shield (Self Freeze & User Freeze) -->
+        <div class="vault-box" id="sec-freeze">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <div class="mini-label" style="color:var(--yellow);">❄️ Single-Grey-Tick DM Freeze Shield (DMs Only · Never Groups)</div>
+            <span class="tag dark" id="freezeSlotBadge">SRV-1</span>
+          </div>
+          <p style="font-size:.74rem;color:var(--muted);line-height:1.45;margin:0 0 10px;">
+            Makes incoming DMs act undelivered (<strong style="color:#fff;">1 grey tick ✓</strong> instead of 2 grey ticks ✓✓ even while online) until you click/open the DM to trigger <strong style="color:#38bdf8;">2 blue ticks ✓✓</strong>.
+          </p>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="btn small" id="toggleSelfFreezeBtn" type="button">❄️ Self Freeze (All DMs): OFF</button>
+            <button class="btn small ghost" id="clearFrozenUsersBtn" type="button">🔓 Unfreeze All Users</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+            <input id="freezeUserPhoneInput" placeholder="Specific user number (e.g. 254712345678) for <user freeze>..." />
+            <button class="btn small ghost" id="addUserFreezeBtn" type="button">🧊 Freeze User</button>
+          </div>
+          <div id="frozenUsersChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
+        </div>
+
         <!-- Live Server Signal Stream -->
         <div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -693,7 +713,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--yellow);box-shadow:0 
           <span class="tag dark">CLICK ANY COMMAND TO COPY</span>
         </div>
         <div class="search-row" style="grid-template-columns:1fr 220px;">
-          <input id="cmdSearchInput" type="search" placeholder="Search commands (.ytmp3, .ytmp4, .phonk, .tickpush, .pushmenu, .servers, .sticker, .bible)...">
+          <input id="cmdSearchInput" type="search" placeholder="Search commands (.ping, .selffreeze, .userfreeze, .ytmp3, .phonk, .tickpush, .servers)...">
           <select id="cmdCatSelect">
             <option value="all">All Categories</option>
           </select>
@@ -1816,6 +1836,98 @@ async function refreshLogs() {
 }
 $('refreshLogsBtn').onclick = refreshLogs;
 
+function renderFreezeShield(freezeCfg, slotIdLabel) {
+  const selfOn = Boolean(freezeCfg?.selfFreeze);
+  const users = Array.isArray(freezeCfg?.frozenUsers) ? freezeCfg.frozenUsers : [];
+  if ($('freezeSlotBadge')) $('freezeSlotBadge').textContent = (slotIdLabel || selectedSlotId || 'srv-1').toUpperCase();
+  const btn = $('toggleSelfFreezeBtn');
+  if (btn) {
+    btn.textContent = selfOn ? '❄️ Self Freeze (All DMs): ON (1 Grey Tick ✓)' : '❄️ Self Freeze (All DMs): OFF';
+    btn.className = selfOn ? 'btn small' : 'btn small ghost';
+  }
+  const chips = $('frozenUsersChips');
+  if (chips) {
+    chips.innerHTML = users.length
+      ? users.map(u => `
+          <button type="button" class="btn small ghost freeze-chip" data-target="${escHtml(u.number || u.id)}" style="padding:3px 8px;font-size:.69rem;">
+            🧊 ${escHtml(u.label || ('+' + u.number))} ✕
+          </button>
+        `).join('')
+      : '<span style="font-size:.71rem;color:var(--muted);">No individual users frozen.</span>';
+  }
+}
+
+$('toggleSelfFreezeBtn')?.addEventListener('click', async () => {
+  try {
+    const r = await fetch('./api/freeze/self', {
+      method: 'POST',
+      headers: dashHeaders(),
+      body: JSON.stringify({ slotId: selectedSlotId })
+    });
+    const d = await safeJson(r);
+    if (!d.ok) throw new Error(d.error || 'Failed to toggle Self Freeze');
+    renderFreezeShield(d.freeze, selectedSlotId);
+    toast(d.freeze.selfFreeze ? 'Self Freeze ON — All DMs stay on 1 grey tick (✓)!' : 'Self Freeze OFF — Normal DM delivery restored.');
+    logVault(`[${selectedSlotId.toUpperCase()}] Self Freeze set to ${d.freeze.selfFreeze ? 'ON' : 'OFF'}.`);
+  } catch (e) {
+    toast(e.message);
+  }
+});
+
+$('addUserFreezeBtn')?.addEventListener('click', async () => {
+  const phone = ($('freezeUserPhoneInput')?.value || '').trim();
+  if (!phone) return toast('Enter a WhatsApp number (e.g. 254712345678) to freeze.');
+  try {
+    const r = await fetch('./api/freeze/user', {
+      method: 'POST',
+      headers: dashHeaders(),
+      body: JSON.stringify({ slotId: selectedSlotId, phone })
+    });
+    const d = await safeJson(r);
+    if (!d.ok) throw new Error(d.error || 'Could not freeze user');
+    $('freezeUserPhoneInput').value = '';
+    renderFreezeShield(d.freeze, selectedSlotId);
+    toast(`Frozen ${d.entry?.label || phone} — Single grey tick (✓) active!`);
+    logVault(`[${selectedSlotId.toUpperCase()}] User Freeze enabled for ${d.entry?.label || phone}.`);
+  } catch (e) {
+    toast(e.message);
+  }
+});
+
+$('clearFrozenUsersBtn')?.addEventListener('click', async () => {
+  try {
+    const r = await fetch('./api/freeze/unfreeze', {
+      method: 'POST',
+      headers: dashHeaders(),
+      body: JSON.stringify({ slotId: selectedSlotId, target: 'all' })
+    });
+    const d = await safeJson(r);
+    if (!d.ok) throw new Error(d.error || 'Could not clear frozen users');
+    renderFreezeShield(d.freeze, selectedSlotId);
+    toast(`Unfroze ${d.removed || 0} user(s).`);
+  } catch (e) {
+    toast(e.message);
+  }
+});
+
+$('frozenUsersChips')?.addEventListener('click', async (e) => {
+  const chip = e.target.closest('.freeze-chip');
+  if (!chip) return;
+  const target = chip.dataset.target;
+  try {
+    const r = await fetch('./api/freeze/unfreeze', {
+      method: 'POST',
+      headers: dashHeaders(),
+      body: JSON.stringify({ slotId: selectedSlotId, target })
+    });
+    const d = await safeJson(r);
+    if (d.ok) {
+      renderFreezeShield(d.freeze, selectedSlotId);
+      toast(`Unfroze +${target}`);
+    }
+  } catch {}
+});
+
 async function refreshStatus(reloadSlotCatalog = false) {
   try {
     const r = await fetch(`./api/status?slotId=${encodeURIComponent(selectedSlotId)}`, { headers: dashHeaders() });
@@ -1855,6 +1967,7 @@ async function refreshStatus(reloadSlotCatalog = false) {
       if (document.activeElement !== $('botNameInput')) $('botNameInput').value = st.botName || 'TEXMEX-MD';
       if (document.activeElement !== $('botPrefixInput')) $('botPrefixInput').value = st.prefix || '.';
       if (document.activeElement !== $('botModeSelect')) $('botModeSelect').value = st.mode || 'public';
+      renderFreezeShield(st.freezeConfig, st.slotId);
 
       if (reloadSlotCatalog && st.pushConfig?.tickedSubcategories?.length) {
         tickedSet = new Set(st.pushConfig.tickedSubcategories);

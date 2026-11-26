@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -13,6 +14,15 @@ import { createWebServer } from '../lib/server.js';
 import { botEngine } from '../lib/bot.js';
 import { getSharp } from '../lib/env.js';
 import { getBotDpBuffer } from '../lib/avatar.js';
+import { handleMessagesUpsert } from '../lib/handler.js';
+import {
+  setSelfFreeze,
+  addFrozenUser,
+  removeFrozenUser,
+  isFrozenDm,
+  getFreezeState
+} from '../lib/store.js';
+import config from '../config.js';
 
 async function runSelfTests() {
   console.log('🧪 Running TEXMEX-MD automated verification suite...\n');
@@ -41,7 +51,8 @@ async function runSelfTests() {
     'selfprayer', 'groupprayer', 'motivationalprayer', 'successprayer', 'failureprayer',
     'tts', 'voice', 'bibleaudio', 'prayeraudio', 'motivateaudio', 'pushvoice', 'setvoice', 'autovoice',
     'pushstatus', 'tostatus', 'pushbible', 'pushprayer', 'pushmotivate', 'pushpsych', 'pushquote', 'autostatuspush',
-    'bio', 'web', 'ports', 'setbio', 'autobio', 'tunnel'
+    'bio', 'web', 'ports', 'setbio', 'autobio', 'tunnel',
+    'selffreeze', 'userfreeze', 'unfreeze', 'freezelist'
   ]) {
     assert.ok(findCommand(requiredCmd), `${requiredCmd} command must exist`);
   }
@@ -185,9 +196,147 @@ async function runSelfTests() {
     assert.ok(html.includes('phonkEffectSelect'), 'Studio HTML must include Master Effects selector');
     assert.ok(html.includes('phonkDurationSelect'), 'Studio HTML must include 160s+ Duration selector');
     assert.ok(html.includes('phonkVocalModeSelect'), 'Studio HTML must include Smart Vocal Alignment / No Batidao selector');
-    console.log('✅ [6/6] NEXUS COMM Multi-Server Pairing Hub, Tick-Box Push Catalog & 160s+ AI Phonk Studio verified');
+    assert.ok(html.includes('toggleSelfFreezeBtn'), 'Web Vault must include Single-Grey-Tick Self Freeze toggle');
+    console.log('✅ [6/7] NEXUS COMM Multi-Server Pairing Hub, Tick-Box Push Catalog & 160s+ AI Phonk Studio verified');
   } finally {
     srv.close();
+  }
+
+  // 7. 0.01s Turbo .ping & Single-Grey-Tick <self freeze> / <user freeze> DM Engine Verification
+  {
+    const testSlot = 'srv-test-freeze';
+    setSelfFreeze(testSlot, false);
+    removeFrozenUser(testSlot, 'all');
+
+    const sentPayloads = [];
+    const readFlushed = [];
+    const evBus = new EventEmitter();
+    const wsBus = new EventEmitter();
+    let onlineReceiptFlag = true;
+    evBus.on('connection.update', ({ isOnline }) => {
+      if (typeof isOnline === 'boolean') onlineReceiptFlag = isOnline;
+    });
+
+    const mockSock = {
+      slotId: testSlot,
+      user: { id: '254715442684:1@s.whatsapp.net', lid: '998877@lid', name: 'TEXMEX' },
+      ev: evBus,
+      ws: wsBus,
+      sendMessage: async (jid, content) => {
+        sentPayloads.push({ jid, content });
+        return { key: { remoteJid: jid, id: 'OUT_1', fromMe: true } };
+      },
+      sendPresenceUpdate: async () => {},
+      readMessages: async (keys) => {
+        readFlushed.push(...keys);
+      }
+    };
+
+    const mockEngine = Object.create(botEngine);
+    mockEngine.slotId = testSlot;
+    mockEngine.sock = mockSock;
+    mockEngine.state = { status: 'connected', user: { number: '254715442684', id: '254715442684@s.whatsapp.net' } };
+    mockEngine.attachFreezeInterceptor(mockSock);
+
+    // 7a. Verify .ping executes in a SINGLE sendMessage call and outputs 0.01s
+    const pingCmd = findCommand('ping');
+    assert.equal(pingCmd.fast, true, '.ping must have fast: true');
+    await handleMessagesUpsert(
+      mockSock,
+      {
+        type: 'notify',
+        messages: [
+          {
+            key: { remoteJid: '254715442684@s.whatsapp.net', fromMe: true, id: 'PING_MSG_1' },
+            message: { conversation: '.ping' }
+          }
+        ]
+      },
+      mockEngine
+    );
+    const textPayloads = sentPayloads.filter((p) => p.content?.text);
+    const pongMsgs = textPayloads.filter((p) => p.content?.text?.includes('0.01s'));
+    assert.equal(textPayloads.length, 1, '.ping must dispatch in a single text sendMessage call (no edit round-trip)');
+    assert.equal(pongMsgs.length, 1, `.ping output must report 0.01s speed, got: ${textPayloads[0]?.content?.text}`);
+
+    // 7b. Spaced `.self freeze on` activates DM-only freeze (NEVER groups!)
+    await handleMessagesUpsert(
+      mockSock,
+      {
+        type: 'notify',
+        messages: [
+          {
+            key: { remoteJid: '254715442684@s.whatsapp.net', fromMe: true, id: 'SF_ON_1' },
+            message: { conversation: '.self freeze on' }
+          }
+        ]
+      },
+      mockEngine
+    );
+    assert.equal(getFreezeState(testSlot).selfFreeze, true, '.self freeze on must enable selfFreeze');
+    assert.equal(
+      isFrozenDm(testSlot, { chatJid: '254700112233@s.whatsapp.net', isGroup: false, botNumber: '254715442684' }).frozen,
+      true,
+      'Incoming DM must be frozen under self freeze'
+    );
+    assert.equal(
+      isFrozenDm(testSlot, { chatJid: '1203630499999@g.us', isGroup: true, botNumber: '254715442684' }).frozen,
+      false,
+      'WhatsApp Groups (@g.us) must NEVER be frozen under self freeze'
+    );
+
+    // Stanza check: DM frame sets isOnline=false (type="inactive" single grey tick ✓), Group frame sets isOnline=true
+    wsBus.emit('CB:message', { attrs: { from: '254700112233@s.whatsapp.net', id: 'DM_FRAME_1' } });
+    assert.equal(onlineReceiptFlag, false, 'Frozen DM stanza must switch Baileys to inactive single-grey-tick receipt');
+    wsBus.emit('CB:message', { attrs: { from: '1203630499999@g.us', participant: '254700112233@s.whatsapp.net', id: 'GRP_FRAME_1' } });
+    assert.equal(onlineReceiptFlag, true, 'Group stanza must preserve active receipt handling');
+
+    // Queue an incoming frozen DM, then simulate owner clicking/opening the DM (chats.update unreadCount: 0) -> 2 blue ticks!
+    await handleMessagesUpsert(
+      mockSock,
+      {
+        type: 'notify',
+        messages: [
+          {
+            key: { remoteJid: '254700112233@s.whatsapp.net', fromMe: false, id: 'FROZEN_IN_1' },
+            message: { conversation: 'Hey are you online?' }
+          }
+        ]
+      },
+      mockEngine
+    );
+    assert.equal(readFlushed.length, 0, 'Frozen DM must NOT auto-read before owner clicks the DM');
+    evBus.emit('chats.update', [{ id: '254700112233@s.whatsapp.net', unreadCount: 0 }]);
+    await new Promise((r) => setTimeout(r, 20));
+    assert.equal(readFlushed.length, 1, 'Clicking/opening the DM must immediately flush read receipt (2 blue ticks ✓✓)');
+    assert.equal(readFlushed[0].id, 'FROZEN_IN_1');
+
+    // 7c. Turn `.self freeze off` and test `.user freeze 254799887766` (specific person + LID mapping!)
+    setSelfFreeze(testSlot, false);
+    await handleMessagesUpsert(
+      mockSock,
+      {
+        type: 'notify',
+        messages: [
+          {
+            key: { remoteJid: '254715442684@s.whatsapp.net', fromMe: true, id: 'UF_ON_1' },
+            message: { conversation: '.user freeze 254799887766' }
+          }
+        ]
+      },
+      mockEngine
+    );
+    assert.equal(getFreezeState(testSlot).frozenUsers.length, 1, '.user freeze must register target user');
+    // Frozen user over PN AND over Baileys v7 @lid envelope must freeze; non-frozen user must NOT freeze!
+    wsBus.emit('CB:message', { attrs: { from: '55443322@lid', sender_pn: '254799887766@s.whatsapp.net', id: 'LID_FRAME_1' } });
+    assert.equal(onlineReceiptFlag, false, 'LID-addressed DM from frozen user must stay on single grey tick (✓)');
+    wsBus.emit('CB:message', { attrs: { from: '254711111111@s.whatsapp.net', id: 'OTHER_DM_1' } });
+    assert.equal(onlineReceiptFlag, true, 'Non-frozen user DM must receive normal two grey ticks (✓✓)');
+
+    // Clean up test slot state
+    setSelfFreeze(testSlot, false);
+    removeFrozenUser(testSlot, 'all');
+    console.log('✅ [7/7] 0.01s Turbo .ping & Single-Grey-Tick <self freeze> / <user freeze> DM Engine verified');
   }
 
   console.log('\n🎉 ALL TEXMEX-MD VERIFICATION CHECKS PASSED!\n');

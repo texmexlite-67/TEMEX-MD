@@ -2,12 +2,18 @@ import {
   updateSettings,
   getSudoList,
   addSudo,
-  removeSudo
+  removeSudo,
+  getFreezeState,
+  setSelfFreeze,
+  addFrozenUser,
+  removeFrozenUser,
+  consumeFrozenMessageKeys
 } from '../lib/store.js';
 import { exportSessionId } from '../lib/session.js';
 import { loadPlugins } from '../lib/plugins.js';
 import { cleanPhoneNumber } from '../lib/env.js';
 import { extractNumber } from '../lib/serialize.js';
+import { sciFiCard, toCyberCaps } from '../lib/style.js';
 import {
   getBotDpBuffer,
   saveCustomBotDp,
@@ -18,8 +24,89 @@ import {
 
 function parseOnOff(arg) {
   const v = String(arg || '').toLowerCase();
-  if (['on', 'true', 'enable', '1'].includes(v)) return true;
-  if (['off', 'false', 'disable', '0'].includes(v)) return false;
+  if (['on', 'true', 'enable', 'enabled', '1'].includes(v)) return true;
+  if (['off', 'false', 'disable', 'disabled', '0'].includes(v)) return false;
+  return null;
+}
+
+/**
+ * Send freeze confirmation privately to Owner's Saved Messages when invoked inside
+ * another person's 1-on-1 DM (and delete the command text in that DM for total stealth).
+ */
+async function sendStealthFreezeReply(sock, m, textPayload) {
+  const isOtherPersonDm =
+    !m.isGroup &&
+    m.chat &&
+    m.botJid &&
+    m.chat !== m.botJid &&
+    (!m.botLid || m.chat !== m.botLid);
+
+  if (isOtherPersonDm) {
+    if (m.fromMe && m.raw?.key) {
+      await sock.sendMessage(m.chat, { delete: m.raw.key }).catch(() => {});
+    }
+    return sock.sendMessage(m.botJid, { text: textPayload });
+  }
+  return m.reply(textPayload);
+}
+
+/**
+ * Resolve target user JID / LID / phone number from mention, quoted message, phone argument, or current DM.
+ */
+function resolveFreezeTarget(m, args = []) {
+  const filteredArgs = args.filter(
+    (a) => !['on', 'off', 'enable', 'disable', 'true', 'false', 'add', 'remove', 'del'].includes(String(a).toLowerCase())
+  );
+
+  // 1. Mentioned user (@tag)
+  if (Array.isArray(m.mentionedJid) && m.mentionedJid.length > 0) {
+    const mentioned = m.mentionedJid[0];
+    const num = mentioned.endsWith('@s.whatsapp.net') ? extractNumber(mentioned) : '';
+    const lid = mentioned.endsWith('@lid') ? mentioned : '';
+    return { number: num, jid: num ? `${num}@s.whatsapp.net` : mentioned, lid, label: num ? `+${num}` : mentioned };
+  }
+
+  // 2. Quoted / replied message
+  if (m.quoted?.sender) {
+    const qSender = m.quoted.sender;
+    const qAlt = m.quoted.raw?.key?.participantAlt || m.quoted.raw?.key?.remoteJidAlt || '';
+    const pnSource = [qSender, qAlt].find((j) => j && j.endsWith('@s.whatsapp.net')) || '';
+    const lidSource = [qSender, qAlt].find((j) => j && j.endsWith('@lid')) || '';
+    const num = pnSource ? extractNumber(pnSource) : '';
+    return {
+      number: num,
+      jid: num ? `${num}@s.whatsapp.net` : qSender,
+      lid: lidSource,
+      label: num ? `+${num}` : qSender
+    };
+  }
+
+  // 3. Explicit phone number or JID argument
+  const rawArg = filteredArgs.join('').trim();
+  if (rawArg) {
+    if (rawArg.endsWith('@lid')) {
+      return { number: '', jid: rawArg, lid: rawArg, label: rawArg };
+    }
+    const digits = cleanPhoneNumber(rawArg);
+    if (digits && digits.length >= 7) {
+      return { number: digits, jid: `${digits}@s.whatsapp.net`, lid: '', label: `+${digits}` };
+    }
+  }
+
+  // 4. Current 1-on-1 DM chat (if not owner's own self-chat)
+  if (!m.isGroup && m.chat && m.chat !== m.botJid && (!m.botLid || m.chat !== m.botLid)) {
+    const alt = m.raw?.key?.remoteJidAlt || '';
+    const pnSource = [m.chat, alt].find((j) => j && j.endsWith('@s.whatsapp.net')) || '';
+    const lidSource = [m.chat, alt].find((j) => j && j.endsWith('@lid')) || '';
+    const num = pnSource ? extractNumber(pnSource) : '';
+    return {
+      number: num,
+      jid: num ? `${num}@s.whatsapp.net` : m.chat,
+      lid: lidSource,
+      label: num ? `+${num}` : m.chat
+    };
+  }
+
   return null;
 }
 
@@ -533,6 +620,283 @@ export default [
       if (val === null) return m.reply('⚙️ Usage: *.menuimage on* or *.menuimage off*');
       updateSettings({ menuImage: val });
       await m.reply(`🖼️ Menu Anime AI DP banner is now *${val ? 'ON' : 'OFF'}*.`);
+    }
+  },
+  {
+    name: 'selffreeze',
+    aliases: ['selfunfreeze', 'freezeall', 'dmfreeze', 'ghostdm'],
+    category: 'owner',
+    desc: 'Make ALL incoming DMs (never groups) act undelivered with a single grey tick (✓) until you click/open the DM to trigger two blue ticks (✓✓)',
+    usage: '.self freeze [on | off | status]',
+    ownerOnly: true,
+    react: '❄️',
+    async execute({ sock, m, args, cmdName, prefix, botRuntime }) {
+      const slotId = m.slotId || sock?.slotId || 'srv-1';
+      const current = getFreezeState(slotId);
+      const firstArg = (args[0] || '').toLowerCase();
+
+      if (firstArg === 'status') {
+        return sendStealthFreezeReply(
+          sock,
+          m,
+          sciFiCard('SELF FREEZE // STATUS', [
+            `❄️ *${toCyberCaps('self freeze')}:* ${current.selfFreeze ? 'ACTIVE (SINGLE GREY TICK ✓)' : 'OFF (NORMAL ✓✓)'}`,
+            `🎯 *${toCyberCaps('scope')}:* ALL INCOMING DMs ONLY (Groups Excluded)`,
+            `👤 *${toCyberCaps('user freeze list')}:* ${current.frozenUsers.length} user(s)`,
+            `💡 *Toggle:* *${prefix}self freeze on* / *${prefix}self freeze off*`
+          ])
+        );
+      }
+
+      let targetState;
+      if (cmdName === 'selfunfreeze') {
+        targetState = false;
+      } else {
+        const parsed = parseOnOff(firstArg);
+        targetState = parsed !== null ? parsed : !current.selfFreeze;
+      }
+
+      const updated = setSelfFreeze(slotId, targetState);
+      await botRuntime?.syncFreezePresence?.();
+
+      return sendStealthFreezeReply(
+        sock,
+        m,
+        sciFiCard(
+          updated.selfFreeze ? 'SELF FREEZE // ACTIVATED ❄️' : 'SELF FREEZE // DEACTIVATED 🔓',
+          updated.selfFreeze
+            ? [
+                `✅ *${toCyberCaps('status')}:* ON — SINGLE GREY TICK (✓)`,
+                `📩 *${toCyberCaps('scope')}:* All Incoming DMs (Groups Excluded)`,
+                `👻 *${toCyberCaps('delivery')}:* Senders see 1 grey tick (✓) even while both online`,
+                `💎 *${toCyberCaps('blue tick')}:* Senders get 2 blue ticks (✓✓) the moment YOU click/open their DM`,
+                `🔓 *Disable anytime:* *${prefix}self freeze off*`
+              ]
+            : [
+                `🔓 *${toCyberCaps('status')}:* OFF — NORMAL DELIVERY (✓✓)`,
+                `📩 *${toCyberCaps('scope')}:* Standard WhatsApp DM receipts restored`,
+                `👤 *${toCyberCaps('specific frozen users')}:* ${updated.frozenUsers.length} active`
+              ]
+        )
+      );
+    }
+  },
+  {
+    name: 'userfreeze',
+    aliases: ['userunfreeze', 'freezeuser', 'freeze'],
+    category: 'owner',
+    desc: 'Make a specific person/user DM act undelivered with a single grey tick (✓) until you click/open their DM to trigger two blue ticks (✓✓)',
+    usage: '.user freeze <@user | phone | reply | list | clear>',
+    ownerOnly: true,
+    react: '🧊',
+    async execute({ sock, m, args, cmdName, prefix, botRuntime }) {
+      const slotId = m.slotId || sock?.slotId || 'srv-1';
+      const firstArg = (args[0] || '').toLowerCase();
+
+      if (firstArg === 'list' || firstArg === 'status') {
+        const st = getFreezeState(slotId);
+        if (!st.frozenUsers.length) {
+          return sendStealthFreezeReply(
+            sock,
+            m,
+            sciFiCard('USER FREEZE // LIST', [
+              `🧊 *Frozen Users:* None (0)`,
+              `❄️ *Global Self Freeze:* ${st.selfFreeze ? 'ON' : 'OFF'}`,
+              `💡 *Usage:* *${prefix}user freeze 2547XXXXXXXX* or reply/tag a user`
+            ])
+          );
+        }
+        const rows = st.frozenUsers.map(
+          (u, idx) => `${idx + 1}. *${u.label || (u.number ? `+${u.number}` : u.id)}*`
+        );
+        return sendStealthFreezeReply(
+          sock,
+          m,
+          sciFiCard(`USER FREEZE // ${st.frozenUsers.length} ACTIVE`, [
+            ...rows,
+            `💡 *Unfreeze:* *${prefix}unfreeze <number/@user>* or *${prefix}unfreeze all*`
+          ])
+        );
+      }
+
+      if (firstArg === 'clear' || firstArg === 'reset') {
+        const res = removeFrozenUser(slotId, 'all');
+        await botRuntime?.syncFreezePresence?.();
+        return sendStealthFreezeReply(
+          sock,
+          m,
+          sciFiCard('USER FREEZE // CLEARED 🔓', [
+            `✅ Unfroze *${res.removed}* user(s). Normal two-grey-tick delivery restored.`
+          ])
+        );
+      }
+
+      const explicitMode =
+        cmdName === 'userunfreeze'
+          ? false
+          : parseOnOff(firstArg);
+
+      const target = resolveFreezeTarget(m, args);
+      if (!target || (!target.number && !target.jid && !target.lid)) {
+        return m.reply(
+          sciFiCard('USER FREEZE // USAGE', [
+            `🧊 *Freeze a specific person's DMs (Single Grey Tick ✓):*`,
+            `1️⃣ *By Number:* *${prefix}user freeze 254712345678*`,
+            `2️⃣ *By Reply:* Reply to their message with *${prefix}user freeze*`,
+            `3️⃣ *By Tag:* *${prefix}user freeze @user*`,
+            `4️⃣ *In Their DM:* Type *${prefix}user freeze* directly inside their DM`,
+            `🔓 *Unfreeze:* *${prefix}user freeze off 254712345678* or *${prefix}unfreeze @user*`
+          ])
+        );
+      }
+
+      // Prevent freezing your own number
+      const botNum = extractNumber(m.botJid);
+      if (botNum && target.number && target.number === botNum) {
+        return m.reply('⚠️ You cannot apply *user freeze* to your own bot number. Use *.self freeze* to freeze all incoming DMs.');
+      }
+
+      // If explicit off -> unfreeze
+      if (explicitMode === false) {
+        const remKey = target.number || target.lid || target.jid;
+        const res = removeFrozenUser(slotId, remKey);
+        await botRuntime?.syncFreezePresence?.();
+        // Flush any pending read receipts if requested
+        if (target.jid) {
+          const queued = consumeFrozenMessageKeys(slotId, target.jid);
+          if (queued.length > 0) sock.readMessages(queued).catch(() => {});
+        }
+        return sendStealthFreezeReply(
+          sock,
+          m,
+          sciFiCard('USER FREEZE // REMOVED 🔓', [
+            `👤 *Target:* ${target.label}`,
+            `✅ *Status:* ${res.removed > 0 ? 'UNFROZEN (Normal ✓✓ Delivery)' : 'Was not frozen'}`,
+            `📋 *Remaining Frozen Users:* ${res.remaining}`
+          ])
+        );
+      }
+
+      // Add or toggle user freeze
+      const added = addFrozenUser(slotId, target);
+      if (!added) {
+        return m.reply('⚠️ Could not resolve a valid WhatsApp user/phone number to freeze.');
+      }
+
+      // If user was already frozen and user didn't pass explicit 'on', toggle OFF for convenience
+      if (added.alreadyFrozen && explicitMode === null) {
+        const remKey = added.entry.number || added.entry.lid || added.entry.jid;
+        const res = removeFrozenUser(slotId, remKey);
+        await botRuntime?.syncFreezePresence?.();
+        return sendStealthFreezeReply(
+          sock,
+          m,
+          sciFiCard('USER FREEZE // TOGGLED OFF 🔓', [
+            `👤 *User:* ${added.entry.label}`,
+            `🔓 *Status:* UNFROZEN — Normal delivery ticks (✓✓) restored`,
+            `📋 *Active Frozen Users:* ${res.remaining}`
+          ])
+        );
+      }
+
+      await botRuntime?.syncFreezePresence?.();
+      return sendStealthFreezeReply(
+        sock,
+        m,
+        sciFiCard('USER FREEZE // ACTIVATED 🧊', [
+          `👤 *${toCyberCaps('target')}:* ${added.entry.label}`,
+          `✅ *${toCyberCaps('tick mode')}:* SINGLE GREY TICK (✓ UNDELIVERED)`,
+          `📩 *${toCyberCaps('scope')}:* Direct Messages from this user only (Not Groups)`,
+          `💎 *${toCyberCaps('blue tick')}:* Notifies sender with 2 blue ticks (✓✓) the moment YOU click/open their DM`,
+          `🔓 *Unfreeze:* *${prefix}unfreeze ${added.entry.number || ''}*`
+        ])
+      );
+    }
+  },
+  {
+    name: 'unfreeze',
+    aliases: ['unfreezeuser', 'clearfreeze'],
+    category: 'owner',
+    desc: 'Unfreeze a specific user, all frozen users, or self freeze',
+    usage: '.unfreeze <@user | phone | reply | self | all>',
+    ownerOnly: true,
+    react: '🔓',
+    async execute({ sock, m, args, prefix, botRuntime }) {
+      const slotId = m.slotId || sock?.slotId || 'srv-1';
+      const sub = (args[0] || '').toLowerCase();
+
+      if (sub === 'self') {
+        setSelfFreeze(slotId, false);
+        await botRuntime?.syncFreezePresence?.();
+        return sendStealthFreezeReply(
+          sock,
+          m,
+          sciFiCard('SELF FREEZE // DISABLED 🔓', [
+            `✅ Global DM *Self Freeze* is now *OFF*. Normal delivery receipts restored.`
+          ])
+        );
+      }
+
+      if (sub === 'all') {
+        setSelfFreeze(slotId, false);
+        const res = removeFrozenUser(slotId, 'all');
+        await botRuntime?.syncFreezePresence?.();
+        return sendStealthFreezeReply(
+          sock,
+          m,
+          sciFiCard('ALL FREEZES // CLEARED 🔓', [
+            `✅ *Self Freeze:* OFF`,
+            `✅ *Unfrozen Users:* ${res.removed} cleared`
+          ])
+        );
+      }
+
+      const target = resolveFreezeTarget(m, args);
+      if (!target) {
+        return m.reply(
+          `⚙️ Usage: *${prefix}unfreeze <number | @user | reply>* or *${prefix}unfreeze self* or *${prefix}unfreeze all*`
+        );
+      }
+
+      const remKey = target.number || target.lid || target.jid;
+      const res = removeFrozenUser(slotId, remKey);
+      await botRuntime?.syncFreezePresence?.();
+      return sendStealthFreezeReply(
+        sock,
+        m,
+        sciFiCard('USER UNFROZEN 🔓', [
+          `👤 *User:* ${target.label}`,
+          `✅ *Result:* ${res.removed > 0 ? 'Unfrozen — Normal 2-grey-tick delivery restored' : 'User was not on freeze list'}`,
+          `📋 *Remaining Frozen Users:* ${res.remaining}`
+        ])
+      );
+    }
+  },
+  {
+    name: 'freezelist',
+    aliases: ['frozenlist', 'frozen'],
+    category: 'owner',
+    desc: 'View current Self Freeze status and all users under User Freeze',
+    usage: '.freezelist',
+    ownerOnly: true,
+    react: '📋',
+    async execute({ sock, m, prefix }) {
+      const slotId = m.slotId || sock?.slotId || 'srv-1';
+      const st = getFreezeState(slotId);
+      const userLines = st.frozenUsers.length
+        ? st.frozenUsers.map((u, i) => `  ${i + 1}. *${u.label || `+${u.number}`}*`)
+        : ['  _No individual users frozen_'];
+
+      return sendStealthFreezeReply(
+        sock,
+        m,
+        sciFiCard('FREEZE SHIELD // OVERVIEW ❄️', [
+          `❄️ *${toCyberCaps('self freeze (all dms)')}:* ${st.selfFreeze ? 'ON (Single Grey Tick ✓)' : 'OFF'}`,
+          `🧊 *${toCyberCaps('frozen users')}:* ${st.frozenUsers.length}`,
+          ...userLines,
+          `💡 *Commands:* *${prefix}self freeze* · *${prefix}user freeze <user>* · *${prefix}unfreeze all*`
+        ])
+      );
     }
   }
 ];
