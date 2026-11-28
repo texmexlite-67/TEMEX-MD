@@ -36,6 +36,7 @@ const CATEGORY_TITLES = {
   status: `📡 ${toSciFiBold('PUSH TO STATUS HUB')}`,
   media: `🎨 ${toSciFiBold('STICKERS & MEDIA')}`,
   tools: `🧰 ${toSciFiBold('CYBER UTILITIES')}`,
+  jobs: `💼 ${toSciFiBold('REMOTE AI JOBS & TASKING')}`,
   ai: `🤖 ${toSciFiBold('AI & ANIME NEXUS')}`,
   owner: `👑 ${toSciFiBold('OWNER MATRIX')}`
 };
@@ -102,7 +103,7 @@ export default [
         `┃ 🔗 *${toCyberCaps('repo')}:* github.com/texmexlite-67/TEMEX-MD\n` +
         `┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n`;
 
-      const order = ['core', 'phonk', 'download', 'group', 'mind', 'voice', 'status', 'ai', 'media', 'tools', 'owner'];
+      const order = ['core', 'phonk', 'download', 'group', 'mind', 'voice', 'status', 'ai', 'media', 'tools', 'jobs', 'owner'];
       const allCats = [...new Set([...order, ...Object.keys(grouped)])];
 
       const sections = [];

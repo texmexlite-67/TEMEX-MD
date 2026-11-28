@@ -46,6 +46,7 @@ async function runSelfTests() {
     'antilink', 'antilinkwarn', 'anticall', 'antispam', 'antistatusmention', 'cd',
     'ytmp4', 'ytmp3', 'instagram', 'facebook', 'tiktok', 'mediafire', 'img', 'video',
     'ai', 'chatbot', 'summarize', 'explain', 'code',
+    'remotejobs', 'jobinfo', 'taskscam',
     'motivate', 'quote', 'psychology', 'pyschology', 'bible', 'spiritual', 'prayer',
     'examprayer', 'travelprayer', 'prosperityprayer', 'familyprayer', 'friendsprayer',
     'selfprayer', 'groupprayer', 'motivationalprayer', 'successprayer', 'failureprayer',
